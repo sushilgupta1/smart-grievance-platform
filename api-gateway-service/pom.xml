@@ -7,9 +7,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <groupId>com.sushil</groupId>
   <artifactId>api-gateway-service</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
 
   <name>api-gateway-service</name>
   <!-- FIXME change it to the project's website -->
@@ -22,6 +20,7 @@
 
   <dependencyManagement>
     <dependencies>
+
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
@@ -33,6 +32,17 @@
   </dependencyManagement>
 
   <dependencies>
+   <!-- Gateway -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <!-- Eureka -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>

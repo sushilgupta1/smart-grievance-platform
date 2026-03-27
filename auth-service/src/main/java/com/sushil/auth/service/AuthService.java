@@ -1,6 +1,7 @@
 package com.sushil.auth.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.sushil.auth.dto.LoginRequest;
@@ -15,13 +16,19 @@ public class AuthService {
 	@Autowired
 	private UserRepository userRepository;
 	
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+	
 	public String login(LoginRequest request)
 	{
 		User user = userRepository.findByEmail(request.getEmail())
 				.orElse(null);
+		System.out.println("Input password: " + request.getPassword());
+		System.out.println("DB password: " + user.getPassword());
 		
-		if(user == null || !user.getPassword().equals(request.getPassword()))
-		return "Invalid Credentials";
+		if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+		    return "Invalid credentials";
+		}
 		
 		return JwtUtil.generateToken(user.getEmail());
 		
@@ -33,7 +40,7 @@ public class AuthService {
 		User user= new User();
 		user.setUsername(request.getUsername());
 		user.setEmail(request.getEmail());
-		user.setPassword(request.getPassword());
+		user.setPassword(passwordEncoder.encode(request.getPassword()));
 		
 		userRepository.save(user);
 		

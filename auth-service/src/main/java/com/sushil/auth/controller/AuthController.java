@@ -19,6 +19,12 @@ public class AuthController {
 	@Autowired
 	private AuthService authService;
 	
+	@GetMapping("/test")
+	public String test()
+	{
+		return "Auth service working";
+	}
+	
 	@PostMapping("/login")
 	public String login(@RequestBody LoginRequest request)
 	{

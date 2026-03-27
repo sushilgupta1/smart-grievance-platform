@@ -36,6 +36,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+ 
 
     <!-- 🔥 Modules -->
     <modules>

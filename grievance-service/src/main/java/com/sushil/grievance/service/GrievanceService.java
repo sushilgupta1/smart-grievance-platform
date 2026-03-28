@@ -1,5 +1,7 @@
 package com.sushil.grievance.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +18,13 @@ public class GrievanceService {
 	@Autowired
 	private KafkaProducerService kafkaProducerService;
 	
-	public Grievance createGrievance(Grievance grievance)
+	public Grievance createGrievance(Grievance grievance, String email)
 	{
+		grievance.setUserEmail(email);
 		grievance.setStatus("OPEN");
 		Grievance saved= repository.save(grievance);
 		
-		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+saved.getUserEmail());
+		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+email);
 		
 		return saved;
 	}
@@ -43,5 +46,10 @@ public class GrievanceService {
 		return repository.save(g);
 	}
 	
+	
+	public List<Grievance> getMyGrievances(String email)
+	{
+		return repository.findByUserEmail(email);
+	}
 
 }

@@ -28,6 +28,7 @@ public class JwtFilter implements Filter {
 		}
 		
 		String authHeader = req.getHeader("Authorization");
+		System.out.println("Authorization header: "+authHeader);
 		
 		if(authHeader == null || !authHeader.startsWith("Bearer "))
 		{

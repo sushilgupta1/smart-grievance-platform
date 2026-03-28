@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.sushil.auth.dto.LoginRequest;
 import com.sushil.auth.dto.RegisterRequest;
 import com.sushil.auth.entity.User;
+import com.sushil.auth.kafka.KafkaProducerService;
 import com.sushil.auth.repository.UserRepository;
 import com.sushil.auth.security.JwtUtil;
 
@@ -18,6 +19,9 @@ public class AuthService {
 	
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+	
+	@Autowired
+	private KafkaProducerService kafkaProducerService;
 	
 	public String login(LoginRequest request)
 	{
@@ -43,6 +47,8 @@ public class AuthService {
 		user.setPassword(passwordEncoder.encode(request.getPassword()));
 		
 		userRepository.save(user);
+		
+		kafkaProducerService.sendMessage("User Registered: "+request.getEmail());
 		
 		return "User saved in DB";
 		

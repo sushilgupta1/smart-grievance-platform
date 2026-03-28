@@ -22,5 +22,7 @@ public class Grievance {
 	private String description;
 	private String status;
 	private String userEmail;
+	private String assignedTo;
+	private String remarks;
 
 }

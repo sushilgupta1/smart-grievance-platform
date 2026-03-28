@@ -33,7 +33,7 @@ public class SecutityConfig {
 	{
 		http.csrf(csrf->csrf.disable())
 		.authorizeHttpRequests(auth->auth.requestMatchers("/auth/login","/auth/register")
-				.permitAll().anyRequest().permitAll())
+				.permitAll().anyRequest().authenticated())
 		.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 		
 		return http.build();

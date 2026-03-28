@@ -12,7 +12,7 @@ public class KafkaConsumerService {
 	@Autowired
 	private EmailService emailService;
 	
-	@KafkaListener(topics = "user-events",groupId = "notification-group")
+	@KafkaListener(topics = {"user-events","grievance-events"},groupId = "notification-group")
 	public void consume(String message)
 	{
 		System.out.println("Received event: "+message);

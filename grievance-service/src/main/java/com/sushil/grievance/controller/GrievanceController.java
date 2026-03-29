@@ -3,6 +3,7 @@ package com.sushil.grievance.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,12 +36,14 @@ public class GrievanceController {
 	}
 	
 	@PutMapping("/assign/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public Grievance assign(@PathVariable Long id, @RequestParam String admin)
 	{
 		return service.assignGrievance(id, admin);
 	}
 	
 	@PutMapping("status/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public Grievance updateStatus(@PathVariable Long id,@RequestParam String status,@RequestParam String remarks)
 	{
 		return service.updateStatus(id, status, remarks);

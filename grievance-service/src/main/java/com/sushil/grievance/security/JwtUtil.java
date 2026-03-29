@@ -1,4 +1,4 @@
-package com.sushil.auth.security;
+package com.sushil.grievance.security;
 
 import java.security.Key;
 import java.util.Date;

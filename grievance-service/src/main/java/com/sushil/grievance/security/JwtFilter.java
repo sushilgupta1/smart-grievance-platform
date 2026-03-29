@@ -1,4 +1,4 @@
-package com.sushil.auth.security;
+package com.sushil.grievance.security;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,7 +30,6 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String authHeader = req.getHeader("Authorization");
-        System.out.println("Auth Header: "+authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
 
@@ -56,7 +55,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (Exception e) {
-            	e.printStackTrace();
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }

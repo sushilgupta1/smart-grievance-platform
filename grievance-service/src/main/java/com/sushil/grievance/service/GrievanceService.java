@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.sushil.grievance.entity.Grievance;
+import com.sushil.grievance.exception.ResourceNotFoundException;
 import com.sushil.grievance.kafka.KafkaProducerService;
 import com.sushil.grievance.repository.GrievanceRepository;
 
@@ -60,5 +61,10 @@ public class GrievanceService {
 	public List<Grievance> getByStatus(String status)
 	{
 		return repository.findByStatus(status);
+	}
+	
+	public Grievance getById(Long id)
+	{
+		return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Grievance not found"));
 	}
 }

@@ -74,4 +74,10 @@ public class GrievanceController {
 	{
 		return service.getByStatus(status);
 	}
+	
+	@GetMapping("/{id}")
+	public Grievance getById(@PathVariable Long id)
+	{
+		return service.getById(id);
+	}
 }

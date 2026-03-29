@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.service.GrievanceService;
 
+import jakarta.ws.rs.GET;
+
 
 @RestController
 @RequestMapping("/grievance")
@@ -57,5 +59,12 @@ public class GrievanceController {
 				.getAuthentication()
 				.getPrincipal();
 		return service.getMyGrievances(email);
+	}
+	
+	@GetMapping("/all")
+	@PreAuthorize("hasRole('ADMIN')")
+	public List<Grievance> getAll()
+	{
+		return service.getAllGrievance();
 	}
 }

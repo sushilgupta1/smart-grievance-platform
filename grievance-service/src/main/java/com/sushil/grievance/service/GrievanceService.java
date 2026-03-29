@@ -52,4 +52,8 @@ public class GrievanceService {
 		return repository.findByUserEmail(email);
 	}
 
+	public List<Grievance> getAllGrievance()
+	{
+		return repository.findAll();
+	}
 }

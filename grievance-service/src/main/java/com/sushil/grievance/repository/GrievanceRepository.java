@@ -9,4 +9,5 @@ import com.sushil.grievance.entity.Grievance;
 public interface GrievanceRepository extends JpaRepository<Grievance, Long> {
 
 	List<Grievance> findByUserEmail(String email);
+	List<Grievance> findByStatus(String status);
 }

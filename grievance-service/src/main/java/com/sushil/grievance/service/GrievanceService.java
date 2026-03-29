@@ -56,4 +56,9 @@ public class GrievanceService {
 	{
 		return repository.findAll();
 	}
+	
+	public List<Grievance> getByStatus(String status)
+	{
+		return repository.findByStatus(status);
+	}
 }

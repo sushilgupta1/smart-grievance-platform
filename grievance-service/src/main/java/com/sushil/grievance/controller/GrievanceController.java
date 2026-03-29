@@ -67,4 +67,11 @@ public class GrievanceController {
 	{
 		return service.getAllGrievance();
 	}
+	
+	@PostMapping("/status")
+	@PreAuthorize("hasRole('ADMIN')")
+	public List<Grievance> getByStatus(@RequestParam String status)
+	{
+		return service.getByStatus(status);
+	}
 }

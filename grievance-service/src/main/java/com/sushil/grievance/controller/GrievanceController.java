@@ -17,67 +17,57 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.service.GrievanceService;
 
-import jakarta.ws.rs.GET;
-
-
 @RestController
 @RequestMapping("/grievance")
 public class GrievanceController {
-	
+
 	@Autowired
 	private GrievanceService service;
 
 	@PostMapping
-	public Grievance create(@RequestBody Grievance grievance)
-	{
-		String email=(String) SecurityContextHolder
+	public Grievance create(@RequestBody Grievance grievance) {
+		String email = (String) SecurityContextHolder
 				.getContext()
 				.getAuthentication()
 				.getPrincipal();
-		return service.createGrievance(grievance,email);
+		return service.createGrievance(grievance, email);
 	}
-	
+
 	@PutMapping("/assign/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public Grievance assign(@PathVariable Long id, @RequestParam String admin)
-	{
+	public Grievance assign(@PathVariable Long id, @RequestParam String admin) {
 		return service.assignGrievance(id, admin);
 	}
-	
+
 	@PutMapping("status/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public Grievance updateStatus(@PathVariable Long id,@RequestParam String status,@RequestParam String remarks)
-	{
+	public Grievance updateStatus(@PathVariable Long id, @RequestParam String status, @RequestParam String remarks) {
 		return service.updateStatus(id, status, remarks);
 	}
-	
+
 	@GetMapping("/my")
-	public List<Grievance> myGrievances()
-	{
-		String email=(String) SecurityContextHolder
+	public List<Grievance> myGrievances() {
+		String email = (String) SecurityContextHolder
 				.getContext()
 				.getAuthentication()
 				.getPrincipal();
 		return service.getMyGrievances(email);
 	}
-	
+
 	@GetMapping("/all")
 	@PreAuthorize("hasRole('ADMIN')")
-	public List<Grievance> getAll()
-	{
+	public List<Grievance> getAll() {
 		return service.getAllGrievance();
 	}
-	
+
 	@PostMapping("/status")
 	@PreAuthorize("hasRole('ADMIN')")
-	public List<Grievance> getByStatus(@RequestParam String status)
-	{
+	public List<Grievance> getByStatus(@RequestParam String status) {
 		return service.getByStatus(status);
 	}
-	
+
 	@GetMapping("/{id}")
-	public Grievance getById(@PathVariable Long id)
-	{
+	public Grievance getById(@PathVariable Long id) {
 		return service.getById(id);
 	}
 }

@@ -12,6 +12,8 @@ import com.sushil.auth.dto.LoginRequest;
 import com.sushil.auth.dto.RegisterRequest;
 import com.sushil.auth.service.AuthService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -34,7 +36,7 @@ public class AuthController {
 	}
 	
 	@PostMapping("/register")
-	public String register(@RequestBody RegisterRequest request)
+	public String register(@Valid @RequestBody RegisterRequest request)
 	{
 		return authService.register(request);
 	}

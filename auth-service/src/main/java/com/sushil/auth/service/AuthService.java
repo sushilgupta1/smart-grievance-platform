@@ -46,6 +46,7 @@ public class AuthService {
 		user.setEmail(request.getEmail());
 		user.setPassword(passwordEncoder.encode(request.getPassword()));
 		user.setRole("USER");
+		user.setMobileNumber(request.getMobileNumber());
 		userRepository.save(user);
 		
 		kafkaProducerService.sendMessage("User Registered: "+request.getEmail());

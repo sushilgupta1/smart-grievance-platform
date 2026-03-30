@@ -18,14 +18,14 @@ public class GrievanceSecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
-	{
-		 http.csrf(csrf->csrf.disable())
-				.authorizeHttpRequests(auth->auth.requestMatchers(HttpMethod.GET,"/grievance/track").permitAll()
-				.requestMatchers("/grievance/**").authenticated().anyRequest().permitAll())
-				.addFilterBefore(jwtFilter(),UsernamePasswordAuthenticationFilter.class);
-		
-		 return http.build();
-		
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		http.csrf(csrf -> csrf.disable())
+				.authorizeHttpRequests(
+						auth -> auth.requestMatchers(HttpMethod.GET, "/grievance/track", "/grievance/feed").permitAll()
+								.requestMatchers("/grievance/**").authenticated().anyRequest().permitAll())
+				.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
+
+		return http.build();
+
 	}
 }

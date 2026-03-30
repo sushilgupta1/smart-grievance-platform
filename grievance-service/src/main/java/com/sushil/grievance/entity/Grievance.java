@@ -1,5 +1,8 @@
 package com.sushil.grievance.entity;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -45,5 +48,14 @@ public class Grievance {
 	
 	@Column(name = "priority_score")
 	private Integer priorityScore;
+	
+	@Column(name = "internal_remarks", columnDefinition = "TEXT")
+	private String internalRemarks;
+	
+	@Column(name = "created_at")
+	private LocalDateTime createdAt;
+	
+	@Column(name = "resolution_deadline")
+	private LocalDateTime resolutionDeadline;
 
 }

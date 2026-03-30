@@ -16,54 +16,47 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest req,
-                                   HttpServletResponse response,
-                                   FilterChain chain)
-            throws ServletException, IOException {
+	@Override
+	protected void doFilterInternal(HttpServletRequest req, HttpServletResponse response, FilterChain chain)
+			throws ServletException, IOException {
 
-        String path = req.getRequestURI();
+		String path = req.getRequestURI();
 
-        if (path.startsWith("/auth/login") || path.startsWith("/auth/register")) {
-            chain.doFilter(req, response);
-            return;
-        }
+		if (path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/grievance/track")
+				|| path.startsWith("/grievance/feed")) {
+			chain.doFilter(req, response);
+			return;
+		}
 
-        String authHeader = req.getHeader("Authorization");
+		String authHeader = req.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 
-            String token = authHeader.substring(7);
+			String token = authHeader.substring(7);
 
-            try {
-                String email = JwtUtil.validateToken(token);
-                String role = JwtUtil.extractRole(token);
+			try {
+				String email = JwtUtil.validateToken(token);
+				String role = JwtUtil.extractRole(token);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                email,
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                        );
+				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,
+						null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(req)
-                );
+				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
 
-                System.out.println("Authorities: " + authentication.getAuthorities());
+				System.out.println("Authorities: " + authentication.getAuthorities());
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+				SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            } catch (Exception e) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
+			} catch (Exception e) {
+				response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				return;
+			}
 
-        } else {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
+		} else {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			return;
+		}
 
-        chain.doFilter(req, response);
-    }
+		chain.doFilter(req, response);
+	}
 }

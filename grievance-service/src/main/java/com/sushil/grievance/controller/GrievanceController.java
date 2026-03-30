@@ -31,10 +31,7 @@ public class GrievanceController {
 
 	@PostMapping
 	public Grievance create(@Valid @RequestBody GrievanceRequest request) {
-		String email = (String) SecurityContextHolder
-				.getContext()
-				.getAuthentication()
-				.getPrincipal();
+		String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		return service.createGrievance(request, email);
 	}
 
@@ -52,10 +49,7 @@ public class GrievanceController {
 
 	@GetMapping("/my")
 	public List<Grievance> myGrievances() {
-		String email = (String) SecurityContextHolder
-				.getContext()
-				.getAuthentication()
-				.getPrincipal();
+		String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		return service.getMyGrievances(email);
 	}
 
@@ -75,16 +69,19 @@ public class GrievanceController {
 	public Grievance getById(@PathVariable Long id) {
 		return service.getById(id);
 	}
-	
+
 	@GetMapping("/track")
-	public Grievance trackPublicStatus(@RequestParam Long id, @RequestParam String email)
-	{
+	public Grievance trackPublicStatus(@RequestParam Long id, @RequestParam String email) {
 		Grievance g = service.getById(id);
-		
-		if(!g.getUserEmail().equalsIgnoreCase(email))
-		{
+
+		if (!g.getUserEmail().equalsIgnoreCase(email)) {
 			throw new RuntimeException("Unauthorized: Email does not match Grievance ID");
 		}
 		return g;
+	}
+
+	@GetMapping("/feed")
+	public List<Grievance> getPublicFeed() {
+		return service.getByStatus("RESOLVED");
 	}
 }

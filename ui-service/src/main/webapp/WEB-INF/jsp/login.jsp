@@ -268,7 +268,24 @@
           </p>
         </div>
       </div>
+        <!-- NEW SECTION: Public Resolution Feed (The Transparency Wall) -->
+    <div class="max-w-6xl w-full z-10 mt-12 mb-16 px-4 animate-fade-in-up" style="animation-delay: 0.4s;">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-extrabold text-white flex items-center tracking-tight">
+          <i class="fa-solid fa-ribbon text-emerald-400 mr-3"></i> Transparency Wall
+        </h2>
+        <span class="text-sm text-slate-400 font-medium bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700/50">Recently Resolved</span>
+      </div>
+      
+      <!-- Container for dynamically injected AI cards -->
+      <div id="feedContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Loader while fetching from Backend -->
+        <div class="col-span-full flex justify-center py-12">
+            <div class="loader opacity-50 border-emerald-500"></div>
+        </div>
+      </div>
     </div>
+    
 
     <!-- API configuration & Scripts -->
     <script>
@@ -440,6 +457,53 @@
           trackLoader.classList.add('hidden');
         }
       }
+      // Tell the browser to load the feed the millisecond the website opens
+      document.addEventListener("DOMContentLoaded", fetchPublicFeed);
+
+      async function fetchPublicFeed() {
+          const container = document.getElementById('feedContainer');
+          try {
+              const res = await fetch(`\${API_GATEWAY_URL}/grievance/feed`);
+              if (!res.ok) throw new Error("Failed to load feed");
+              
+              const grievances = await res.json();
+              container.innerHTML = ''; // Delete the loading spinner
+              
+              if (grievances.length === 0) {
+                  container.innerHTML = '<p class="text-slate-400 col-span-full text-center py-8">No public resolutions to display yet.</p>';
+                  return;
+              }
+              
+              // Sort by ID descending (newest first) and grab only the top 3!
+              const recent = grievances.sort((a,b) => b.id - a.id).slice(0, 3);
+              
+              recent.forEach(g => {
+                  // If the admin attached a Base64 Photo, build an image tag!
+                  const imageHtml = g.attachmentUrl ? 
+                      `<div class="h-40 w-full mt-4 rounded-xl bg-cover bg-center border border-slate-700/50" style="background-image: url('\${g.attachmentUrl}')"></div>` : '';
+                      
+                  // Build the stunning Tailwind Glass Card
+                  const card = `
+                  <div class="glass-panel p-6 rounded-2xl border-t border-emerald-500/20 hover:-translate-y-1 transition duration-300">
+                      <div class="flex justify-between items-start mb-3">
+                        <span class="text-emerald-400 font-bold text-xs uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded"><i class="fa-solid fa-check-circle mr-1"></i> Resolved</span>
+                        <span class="text-slate-500 text-xs font-bold">#\${g.id}</span>
+                      </div>
+                      <h3 class="font-bold text-white text-lg mb-2 truncate" title="\${g.title}">\${g.title}</h3>
+                      <p class="text-slate-400 text-sm line-clamp-3 leading-relaxed">\${g.description}</p>
+                      \${imageHtml}
+                  </div>
+                  `;
+                  
+                  // Inject it into our HTML grid!
+                  container.innerHTML += card;
+              });
+              
+          } catch(err) {
+              container.innerHTML = '<p class="text-slate-500 col-span-full text-center py-4"><i class="fa-solid fa-server mr-2"></i> Feed temporarily unavailable.</p>';
+          }
+      }
+
     </script>
   </body>
 

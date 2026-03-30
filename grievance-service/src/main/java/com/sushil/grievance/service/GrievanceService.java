@@ -1,5 +1,6 @@
 package com.sushil.grievance.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,8 @@ public class GrievanceService {
 		
 		grievance.setUserEmail(email);
 		grievance.setStatus("OPEN");
+		grievance.setCreatedAt(LocalDateTime.now());
+		grievance.setResolutionDeadline(LocalDateTime.now().plusDays(7));
 		Grievance saved= repository.save(grievance);
 		
 		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+email);

@@ -245,6 +245,18 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">Mobile Number</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-phone text-slate-500"></i>
+                            </div>
+                            <input type="tel" id="mobileNumber" required minlength="10" maxlength="15" pattern="[0-9]*"
+                                class="input-field w-full pl-11 pr-4 py-3.5 rounded-xl text-sm"
+                                placeholder="9876543210">
+                        </div>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">Password</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -336,13 +348,14 @@
             async function handleRegister() {
                 const username = document.getElementById('username').value.trim();
                 const email = document.getElementById('email').value.trim();
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
                 const password = document.getElementById('password').value.trim();
                 const btnText = document.getElementById('btnText');
                 const btnLoader = document.getElementById('btnLoader');
                 const btnIcon = document.getElementById('btnIcon');
                 const btn = document.getElementById('registerBtn');
 
-                if (!username || !email || !password) return;
+                if (!username || !email || !mobileNumber || !password) return;
 
                 hideAlert();
 
@@ -358,7 +371,7 @@
                     const response = await fetch(`\${API_GATEWAY_URL}/auth/register`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, email, password })
+                        body: JSON.stringify({ username, email, mobileNumber, password })
                     });
 
                     if (!response.ok) {

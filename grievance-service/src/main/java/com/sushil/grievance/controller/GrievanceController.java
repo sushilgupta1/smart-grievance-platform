@@ -2,7 +2,6 @@ package com.sushil.grievance.controller;
 
 import java.util.List;
 
-import javax.management.RuntimeErrorException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sushil.grievance.dto.GrievanceRequest;
+import com.sushil.grievance.dto.ResolveRequest;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.service.GrievanceService;
 
@@ -83,5 +83,10 @@ public class GrievanceController {
 	@GetMapping("/feed")
 	public List<Grievance> getPublicFeed() {
 		return service.getByStatus("RESOLVED");
+	}
+	
+	@PutMapping("/{id}/status")
+	public Grievance updateStatus(@PathVariable Long id, @RequestBody ResolveRequest request) {
+		return service.updateResolution(id, request);
 	}
 }

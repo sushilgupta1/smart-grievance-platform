@@ -49,7 +49,9 @@ public class AuthService {
 		user.setMobileNumber(request.getMobileNumber());
 		userRepository.save(user);
 		
-		kafkaProducerService.sendMessage("User Registered: "+request.getEmail());
+		String kafkaPayload = String.format("{\"email\": \"%s\", \"mobile\": \"%s\"}", request.getEmail(), request.getMobileNumber());
+
+		kafkaProducerService.sendMessage(kafkaPayload);
 		
 		return "User saved in DB";
 		

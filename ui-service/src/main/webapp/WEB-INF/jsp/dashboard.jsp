@@ -519,75 +519,57 @@
                 if (!grievances || grievances.length === 0) {
                     document.getElementById('workspaceContent').innerHTML = `
                     <div class="glass-panel p-10 rounded-3xl text-center shadow-lg border-dashed">
-                        <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500 text-2xl">
-                            <i class="fa-solid fa-inbox"></i>
-                        </div>
+                        <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500 text-2xl"><i class="fa-solid fa-inbox"></i></div>
                         <h3 class="text-white font-bold mb-1">No Grievances Found</h3>
                         <p class="text-slate-400 text-sm">Everything looks clean and quiet here.</p>
-                    </div>
-                `;
+                    </div>`;
                     return;
                 }
 
-                // Sort by ID descending (newest first realistically)
                 grievances.sort((a, b) => b.id - a.id);
-
                 let html = '<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in pb-10">';
 
                 grievances.forEach(g => {
                     const isAssigned = !!g.assignedTo;
                     const assignedText = isAssigned ? g.assignedTo : '<span class="text-slate-500 italic">Unassigned</span>';
 
-                    // Admin Actions Dropdown
-                    let adminActionsHtml = '';
-                    if (isAdminView) {
-                        adminActionsHtml = `
-                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex space-x-2">
-                            <button onclick="openAssignModal(\${g.id})" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg text-xs font-bold transition border border-slate-700">
-                                <i class="fa-solid fa-user-plus mr-1"></i> Assign
-                            </button>
-                            <button onclick="openStatusModal(\${g.id}, '\${g.status}')" class="flex-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-2 rounded-lg text-xs font-bold transition border border-blue-500/30">
-                                <i class="fa-regular fa-pen-to-square mr-1"></i> Update
-                            </button>
-                        </div>
-                    `;
+                    // === AI DYNAMIC COLOR BADGE LOGIC ===
+                    let priorityHtml = '';
+                    if (g.priorityScore) {
+                        let pColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+                        if (g.priorityScore >= 8) pColor = "bg-red-500/20 text-red-400 border-red-500/50 shadow-lg shadow-red-500/20";
+                        else if (g.priorityScore >= 5) pColor = "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                        
+                        priorityHtml = `<span class="px-2 py-1 rounded text-[10px] uppercase tracking-wider font-extrabold border \${pColor} transition-transform hover:scale-105">Lvl \${g.priorityScore} Prio</span>`;
                     }
 
+                    // Notice how we removed the clunky Assign/Resolve buttons and made the entire card clickable!
                     html += `
-                    <div class="glass-panel p-5 rounded-2xl flex flex-col">
-                        <div class="flex justify-between items-start mb-3">
+                    <div onclick='openDetailsModal(\${JSON.stringify(g).replace(/'/g, "&#39;")})' class="glass-panel p-5 rounded-2xl flex flex-col cursor-pointer hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 group relative">
+                        <!-- Floating Badges Top Right -->
+                        <div class="absolute -top-3 right-4 flex space-x-2 shadow-lg shadow-dark-900 border border-slate-700/50 rounded bg-dark-900 z-10">
+                           \${priorityHtml}
+                           \${g.category ? `<span class="px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">\${escapeHtml(g.category)}</span>` : ''}
+                        </div>
+
+                        <div class="flex justify-between items-start mb-3 pt-2">
                             <span class="text-xs font-bold text-slate-500 bg-slate-900/50 px-2 py-1 rounded">#\${g.id}</span>
                             \${getStatusBadge(g.status)}
                         </div>
-                        <h4 class="font-bold text-white mb-2 leading-tight">\${escapeHtml(g.title)}</h4>
+                        <h4 class="font-bold text-white mb-2 leading-tight group-hover:text-blue-400 transition">\${escapeHtml(g.title)}</h4>
                         <p class="text-sm text-slate-400 mb-4 line-clamp-3 flex-1">\${escapeHtml(g.description)}</p>
                         
                         <div class="space-y-2 text-xs text-slate-400 bg-slate-900/40 p-3 rounded-xl border border-white/5">
-                            <div class="flex justify-between">
-                                <span><i class="fa-regular fa-user mr-1.5 text-slate-500"></i> From:</span>
-                                <span class="text-slate-300 truncate ml-2" title="\${g.userEmail || 'System'}">\${g.userEmail || 'System'}</span>
-                            </div>
                             <div class="flex justify-between">
                                 <span><i class="fa-solid fa-user-shield mr-1.5 text-slate-500"></i> Assigned:</span>
                                 <span class="text-slate-300 truncate ml-2">\${assignedText}</span>
                             </div>
                         </div>
-
-                        \${g.remarks ? (
-                            '<div class="mt-3 text-xs bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 p-2.5 rounded-lg flex items-start">' +
-                                '<i class="fa-solid fa-comment-dots mt-0.5 mr-2 text-indigo-400"></i>' +
-                                '<span>' + escapeHtml(g.remarks) + '</span>' +
-                            '</div>'
-                        ) : ''}
-
-                        \${adminActionsHtml}
-                    </div>
-                `;
+                    </div>`;
                 });
-                html += '</div>';
-
-                document.getElementById('workspaceContent').innerHTML = html;
+                document.getElementById('workspaceContent').innerHTML = html + '</div>';
             }
+
 
             // Simple HTML Escaper
             function escapeHtml(unsafe) {
@@ -610,20 +592,7 @@
                 modal.classList.add('hidden');
             }
 
-            function openAssignModal(id) {
-                modalTitle.textContent = `Assign Grievance #\${id}`;
-                modalBody.innerHTML = `
-                <div class="space-y-4">
-                    <p class="text-sm text-slate-400 mb-2">Assign this grievance to an administrator. It defaults to yourself.</p>
-                    <input type="email" id="assignTarget" value="\${userEmail}" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="admin@example.com">
-                    <div class="flex justify-end gap-3 mt-4">
-                        <button onclick="closeModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white transition text-sm font-medium">Cancel</button>
-                        <button onclick="submitAssign(\${id})" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition text-sm">Confirm Assign</button>
-                    </div>
-                </div>
-            `;
-                modal.classList.remove('hidden');
-            }
+            
 
             async function submitAssign(id) {
                 const adminEmail = document.getElementById('assignTarget').value.trim();
@@ -642,48 +611,129 @@
                 }
             }
 
-            function openStatusModal(id, currentStatus) {
-                currentStatus = currentStatus || 'OPEN';
-                modalTitle.textContent = `Update Status #\${id}`;
-                modalBody.innerHTML = `
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1.5">New Status</label>
-                        <select id="newStatus" class="input-field w-full px-4 py-3 rounded-xl text-sm appearance-none">
-                            <option value="OPEN" \${currentStatus === 'OPEN' ? 'selected' : ''}>Open</option>
-                            <option value="IN PROGRESS" \${currentStatus === 'IN PROGRESS' ? 'selected' : ''}>In Progress</option>
-                            <option value="RESOLVED" \${currentStatus === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
-                        </select>
+            // 🚨 NEW UNIFIED MASTER MODAL
+            function openDetailsModal(grievanceJson) {
+                const g = typeof grievanceJson === 'string' ? JSON.parse(grievanceJson) : grievanceJson;
+                currentBase64Image = "";
+
+                document.getElementById('modalTitle').innerHTML = `Grievance #\${g.id} <span class="text-sm font-normal text-slate-400 ml-2">\${g.category ? escapeHtml(g.category) : 'Uncategorized'}</span>`;
+
+                const photoHtml = g.attachmentUrl ? `
+                    <div class="mb-4">
+                        <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest text-center">Citizen Uploaded Proof</label>
+                        <div class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner" style="background-image: url('\${g.attachmentUrl}')"></div>
+                    </div>` : `<div class="mb-4 text-xs font-semibold text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 border-dashed text-center"><i class="fa-solid fa-image-slash mb-1 text-lg"></i><br/>No Photo Attached</div>`;
+
+                // If user is Admin, they get the Action tools at the bottom!
+                let actionControlsHtml = '';
+                if (isAdmin) {
+                    actionControlsHtml = `
+                    <div class="mt-6 border-t border-slate-700/50 pt-5 space-y-4 bg-slate-900/40 -mx-6 -mb-6 p-6 rounded-b-2xl">
+                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Admin Action Console</h4>
+                        
+                        <div class="grid grid-cols-2 gap-4 flex-wrap">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Assign Officer Email</label>
+                                <div class="flex">
+                                    <input type="email" id="assignTarget" value="\${g.assignedTo || userEmail}" class="input-field w-full px-3 py-2 rounded-l-lg text-[10px]" placeholder="admin@example.com">
+                                    <button onclick="submitAssign(\${g.id})" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-r-lg font-bold shadow-lg"><i class="fa-solid fa-user-plus"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Current Status</label>
+                                <select id="newStatus" class="input-field w-full px-3 py-2 rounded-lg text-xs appearance-none">
+                                    <option value="OPEN" \${g.status === 'OPEN' ? 'selected' : ''}>Open</option>
+                                    <option value="IN PROGRESS" \${g.status === 'IN PROGRESS' ? 'selected' : ''}>In Progress</option>
+                                    <option value="RESOLVED" \${g.status === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1"><i class="fa-solid fa-lock mr-1"></i> Internal Officer Remarks</label>
+                            <textarea id="adminRemarks" rows="2" class="input-field w-full px-3 py-2 rounded-lg text-xs" placeholder="Private case notes... (\${g.remarks ? 'Existing text will be replaced if edited' : 'Visible only to admins'})">\${g.remarks || ''}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-emerald-400 mb-1"><i class="fa-solid fa-earth-americas mr-1"></i> Resolution Tweet (Public View)</label>
+                            <textarea id="publicTweet" rows="2" class="input-field w-full px-3 py-2 rounded-lg text-xs border-emerald-500/30 font-medium" placeholder="E.g. The administration has successfully resolved this issue.">\${g.publicPostDescription || ''}</textarea>
+                        </div>
+                        
+                        <div class="flex justify-between items-end mt-2">
+                            <div class="flex-1 mr-4 overflow-hidden hidden sm:block">
+                                <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Attach Rectified Photo</label>
+                                <input type="file" accept="image/*" onchange="handleImageUpload(event)" class="text-xs file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-emerald-500/20 file:text-emerald-400 file:cursor-pointer w-[150px]">
+                            </div>
+                            <button onclick="submitStatus(\${g.id})" class="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2 px-6 rounded-xl font-bold transition shadow-lg shadow-emerald-500/20 text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-check-double mr-1"></i> Update Log
+                            </button>
+                        </div>
+                    </div>`;
+                }
+
+                document.getElementById('modalBody').innerHTML = `
+                <div class="max-h-[75vh] overflow-y-auto pr-2 custom-scroll">
+                    \${photoHtml}
+                    <div class="space-y-4 text-sm px-1">
+                        <p class="text-slate-200"><strong class="text-slate-400 block text-xs uppercase tracking-wider mb-1">Description</strong></p>
+                        <p class="text-slate-300 text-sm italic bg-slate-800/50 p-4 rounded-xl border border-slate-700 leading-relaxed max-h-48 overflow-y-auto custom-scroll">\${escapeHtml(g.description)}</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                            <p class="text-slate-300"><strong class="text-slate-500 block text-xs uppercase tracking-widest mb-1"><i class="fa-solid fa-location-crosshairs mr-1"></i> GPS Coords</strong> <a href="https://maps.google.com/?q=\${g.locationCoordinates}" target="_blank" class="text-blue-400 hover:text-blue-300 underline font-medium">\${escapeHtml(g.locationCoordinates) || 'Unregistered'}</a></p>
+                            <p class="text-slate-300"><strong class="text-slate-500 block text-xs uppercase tracking-widest mb-1"><i class="fa-solid fa-envelope mr-1"></i> User Base</strong> \${escapeHtml(g.userEmail)}</p>
+                        </div>
+                        
+                        <div class="inline-flex items-center text-emerald-400 bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20 shadow-inner">
+                            <i class="fa-solid fa-phone-volume text-lg mr-3"></i>
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest block leading-tight">Emergency Contact</span>
+                                <span class="font-bold tracking-wider">\${escapeHtml(g.userMobile) || 'Not Provided'}</span>
+                            </div>
+                        </div>
+
+                        \${g.publicPostDescription ? `<div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-reply-all mt-0.5 mr-2 text-emerald-400"></i><div><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-0.5">Official Resolution Statement</span>\${escapeHtml(g.publicPostDescription)}</div></div>` : ''}
+                        
+                        \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10" style="background-image: url('\${g.resolvedAttachmentUrl}')"></div></div>` : ''}
+
+                        \${(isAdmin && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1.5">Admin Remarks</label>
-                        <textarea id="adminRemarks" rows="3" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="Add resolution details or public notes here..."></textarea>
-                    </div>
-                    <div class="flex justify-end gap-3 mt-4">
-                        <button onclick="closeModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white transition text-sm font-medium">Cancel</button>
-                        <button onclick="submitStatus(\${id})" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition text-sm">Save Update</button>
-                    </div>
-                </div>
-            `;
-                modal.classList.remove('hidden');
+                    \${actionControlsHtml}
+                </div>`;
+                
+                document.getElementById('actionModal').classList.remove('hidden');
             }
+
 
             async function submitStatus(id) {
                 const status = document.getElementById('newStatus').value;
-                const remarks = document.getElementById('adminRemarks').value.trim();
+                const remarksElem = document.getElementById('adminRemarks');
+                const remarks = remarksElem ? remarksElem.value.trim() : "Automated System: Processed via Master Console";
+                const publicTweet = document.getElementById('publicTweet').value.trim();
 
                 try {
-                    // PUT /grievance/status/{id}?status={status}&remarks={remarks}
-                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/status/\${id}?status=\${encodeURIComponent(status)}&remarks=\${encodeURIComponent(remarks)}`, {
-                        method: 'PUT'
+                    // Send the secure JSON payload instead of cramped URL parameters
+                    const payload = {
+                        status: status,
+                        remarks: remarks,
+                        publicPostDescription: publicTweet,
+                        resolveAttachmentUrl: currentBase64Image
+                    };
+
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/\${id}/status`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
                     });
+                    
                     if (!res.ok) throw new Error("Failed to update status");
+                    
+                    showAlert('success', 'Status & Civic Tweet published successfully!');
                     closeModal();
                     loadAdminView();
                 } catch (err) {
                     alert(err.message);
                 }
             }
+
 
 
             // INITIALIZATION KICK-OFF

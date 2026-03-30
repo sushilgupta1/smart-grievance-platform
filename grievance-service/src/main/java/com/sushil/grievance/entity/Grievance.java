@@ -1,6 +1,5 @@
 package com.sushil.grievance.entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -57,5 +56,16 @@ public class Grievance {
 	
 	@Column(name = "resolution_deadline")
 	private LocalDateTime resolutionDeadline;
+	
+	@Column(name = "resolved_attachment_url", columnDefinition = "LONGTEXT")
+	private String resolvedAttachmentUrl;
+	
+	@Column(name = "public_post_description", columnDefinition = "TEXT")
+	private String publicPostDescription;
+	
+	@Column(length = 100)
+	private String category;
 
+	@Column(name = "user_mobile", length = 15)
+	private String userMobile;
 }

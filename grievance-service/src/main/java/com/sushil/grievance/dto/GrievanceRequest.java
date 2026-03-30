@@ -21,5 +21,7 @@ public class GrievanceRequest {
 	private String attachmentUrl;
 	private String locationCoordinates;
 	
+	
+	
 
 }

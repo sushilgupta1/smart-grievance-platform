@@ -2,6 +2,8 @@ package com.sushil.grievance.controller;
 
 import java.util.List;
 
+import javax.management.RuntimeErrorException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -72,5 +74,17 @@ public class GrievanceController {
 	@GetMapping("/{id}")
 	public Grievance getById(@PathVariable Long id) {
 		return service.getById(id);
+	}
+	
+	@GetMapping("/track")
+	public Grievance trackPublicStatus(@RequestParam Long id, @RequestParam String email)
+	{
+		Grievance g = service.getById(id);
+		
+		if(!g.getUserEmail().equalsIgnoreCase(email))
+		{
+			throw new RuntimeException("Unauthorized: Email does not match Grievance ID");
+		}
+		return g;
 	}
 }

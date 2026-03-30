@@ -162,31 +162,28 @@
         </div>
 
         <!-- Public Grievance Tracking Card -->
-        <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
-          <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <i class="fa-solid fa-magnifying-glass-location text-6xl"></i>
-          </div>
-          <h3 class="text-xl font-bold mb-2 flex items-center">
-            <i class="fa-solid fa-route text-blue-400 mr-2"></i> Track Your Grievance
-          </h3>
-          <p class="text-sm text-slate-400 mb-5">
-            Enter your grievance ID below to check the real-time status without logging in.
-          </p>
-
-          <div class="flex space-x-3">
-            <div class="relative flex-1">
+                  <div class="flex flex-col space-y-3">
+            <div class="relative w-full">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fa-solid fa-hashtag text-slate-500"></i>
               </div>
-              <input type="text" id="trackId" class="input-field w-full pl-10 pr-4 py-3 rounded-xl text-sm w-full"
-                placeholder="e.g. 10045">
+              <input type="text" id="trackId" class="input-field w-full pl-10 pr-4 py-3 rounded-xl text-sm" placeholder="Grievance ID (e.g. 1)">
             </div>
+            
+            <div class="relative w-full">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fa-regular fa-envelope text-slate-500"></i>
+              </div>
+              <input type="email" id="trackEmail" class="input-field w-full pl-10 pr-4 py-3 rounded-xl text-sm" placeholder="Registered Email">
+            </div>
+
             <button onclick="trackGrievance()" id="trackBtn"
-              class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-medium transition duration-200 flex items-center shadow-lg shadow-slate-900/20">
-              <span>Check</span>
+              class="bg-slate-700 hover:bg-slate-600 text-white w-full py-3 rounded-xl font-medium transition duration-200 flex items-center justify-center shadow-lg shadow-slate-900/20">
+              <span>View Status</span>
               <div id="trackLoader" class="loader ml-2 hidden"></div>
             </button>
           </div>
+        
 
           <!-- Track Result Display -->
           <div id="trackResult" class="mt-4 hidden p-4 rounded-xl border border-slate-700 bg-slate-800/50">
@@ -277,7 +274,7 @@
     <script>
       // Use the API Gateway mapped to port 8085 as requested
       const API_GATEWAY_URL = 'http://localhost:8085';
-
+      
       // Toggle Password Visibility
       function togglePassword() {
         const pwd = document.getElementById('password');
@@ -381,11 +378,13 @@
 
       // Handle Public Grievance Tracking using GrievanceController via API Gateway
       async function trackGrievance() {
-        const trackId = document.getElementById('trackId').value.trim();
+    	  const trackId = document.getElementById('trackId').value.trim();
+          const trackEmail = document.getElementById('trackEmail').value.trim();
+
         const trackResult = document.getElementById('trackResult');
         const trackBtn = document.getElementById('trackBtn');
         const trackLoader = document.getElementById('trackLoader');
-
+		
         if (!trackId) {
           trackResult.innerHTML = '<p class="text-red-400 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Please enter a valid ID.</p>';
           trackResult.classList.remove('hidden');
@@ -399,7 +398,7 @@
 
         try {
           // Assuming GET /grievance/{id} is publicly accessible, or at least handles 401/404 gracefully
-          const response = await fetch(`\${API_GATEWAY_URL}/grievance/\${trackId}`, {
+         const response = await fetch(`\${API_GATEWAY_URL}/grievance/track?id=\${trackId}&email=\${trackEmail}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
           });
@@ -434,8 +433,8 @@
           trackResult.classList.remove('hidden');
 
         } catch (err) {
-          trackResult.innerHTML = `<p class="text-red-400 text-sm"><i class="fa-solid fa-circle-xmark mr-1"></i> ${err.message}</p>`;
-          trackResult.classList.remove('hidden');
+        	 trackResult.innerHTML = `<p class="text-red-400 text-sm"><i class="fa-solid fa-circle-xmark mr-1"></i> \${err.message}</p>`;
+             trackResult.classList.remove('hidden');
         } finally {
           trackBtn.disabled = false;
           trackLoader.classList.add('hidden');

@@ -37,7 +37,7 @@ public class Grievance {
 	@Column(columnDefinition = "TEXT")
 	private String remarks;
 	
-	@Column(name = "attachment_url", length = 500)
+	@Column(name = "attachment_url", columnDefinition = "LONGTEXT")
 	private String attachmentUrl;
 	
 	@Column(name = "location_coordinates", length = 100)

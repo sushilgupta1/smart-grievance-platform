@@ -269,9 +269,32 @@
         <!-- Application Logic -->
         <script>
             const API_GATEWAY_URL = 'http://localhost:8085';
+            let currentBase64Image = "";
 
             // Initialize UI based on role
             document.getElementById('roleText').textContent = isAdmin ? 'Administrator' : 'User';
+            // Base64 Image Encoder
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    // Safety Guard: Stop them from uploading a 20MB 4K photo which would lag the database!
+                    if (file.size > 2 * 1024 * 1024) { 
+                        showAlert('error', 'Image is too large. Please select an image under 2MB.');
+                        event.target.value = ""; // Clear the input
+                        currentBase64Image = "";
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        currentBase64Image = reader.result; // This converts the image to the giant text string!
+                        showAlert('success', 'Image attached and encoded successfully!');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    currentBase64Image = "";
+                }
+            }
 
             function logout() {
                 localStorage.removeItem('token');
@@ -394,6 +417,23 @@
                             <label class="block text-sm font-medium text-slate-300 mb-2">Detailed Description</label>
                             <textarea id="gDesc" required rows="6" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="Provide all necessary details here..."></textarea>
                         </div>
+                        <!-- GPS Location Builder -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Issue Location (GPS)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="gLocation" class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="Click the button to fetch coordinates ->">
+                                <button type="button" onclick="fetchGPS()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-3 rounded-xl transition flex items-center justify-center shadow-inner" title="Get Current Location">
+                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Photo/Proof Attachment -->
+                        <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Upload Photo Proof</label>
+                        <input type="file" id="gPhoto" accept="image/*" onchange="handleImageUpload(event)" class="input-field w-full px-4 py-3 rounded-xl text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30">
+                    </div>
+
                         <div class="flex justify-end pt-2">
                             <button type="submit" id="submitBtn" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/25 transition">
                                 Submit Grievance
@@ -409,6 +449,7 @@
                 const title = document.getElementById('gTitle').value.trim();
                 const description = document.getElementById('gDesc').value.trim();
                 const btn = document.getElementById('submitBtn');
+                const locationCoordinates = document.getElementById('gLocation').value.trim();
 
                 if (!title || !description) return;
 
@@ -418,7 +459,13 @@
                 try {
                     const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance`, {
                         method: 'POST',
-                        body: JSON.stringify({ title, description, status: "OPEN" })
+                        body: JSON.stringify({ 
+                            title: title, 
+                            description: description, 
+                            status: "OPEN",
+                            locationCoordinates: locationCoordinates,
+                            attachmentUrl: currentBase64Image
+                        })
                     });
 
                     if (!res.ok) throw new Error("Failed to submit.");
@@ -645,6 +692,28 @@
             } else {
                 loadUserView();
             }
+            function fetchGPS() {
+                const locInput = document.getElementById('gLocation');
+                locInput.value = "Detecting location...";
+                
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude.toFixed(5);
+                            const lng = position.coords.longitude.toFixed(5);
+                            locInput.value = lat + ", " + lng; // Formats to "28.7041, 77.1025"
+                            showAlert('success', 'GPS Coordinates pinned!');
+                        }, 
+                        (error) => {
+                            locInput.value = "";
+                            showAlert('error', 'Please allow location access in your browser.');
+                        }
+                    );
+                } else {
+                    showAlert('error', 'Geolocation is not supported by this browser.');
+                }
+            }
+          
 
         </script>
     </body>

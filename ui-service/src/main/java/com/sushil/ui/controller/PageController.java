@@ -23,5 +23,11 @@ public class PageController {
 	{
 		return "grievance";
 	}
+
+	@GetMapping("/dashboard")
+	public String dashboardPage()
+	{
+		return "dashboard";
+	}
 	
 }

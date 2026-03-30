@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sushil.grievance.dto.GrievanceRequest;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.service.GrievanceService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/grievance")
@@ -25,12 +28,12 @@ public class GrievanceController {
 	private GrievanceService service;
 
 	@PostMapping
-	public Grievance create(@RequestBody Grievance grievance) {
+	public Grievance create(@Valid @RequestBody GrievanceRequest request) {
 		String email = (String) SecurityContextHolder
 				.getContext()
 				.getAuthentication()
 				.getPrincipal();
-		return service.createGrievance(grievance, email);
+		return service.createGrievance(request, email);
 	}
 
 	@PutMapping("/assign/{id}")

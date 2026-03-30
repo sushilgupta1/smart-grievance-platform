@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.sushil.grievance.dto.GrievanceRequest;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.exception.ResourceNotFoundException;
 import com.sushil.grievance.kafka.KafkaProducerService;
@@ -19,8 +20,15 @@ public class GrievanceService {
 	@Autowired
 	private KafkaProducerService kafkaProducerService;
 	
-	public Grievance createGrievance(Grievance grievance, String email)
+	public Grievance createGrievance(GrievanceRequest request, String email)
 	{
+		Grievance grievance=new Grievance();
+		grievance.setTitle(request.getTitle());
+		grievance.setDescription(request.getDescription());
+		
+		grievance.setAttachmentUrl(request.getAttachmentUrl());
+		grievance.setLocationCoordinates(request.getLocationCoordinates());
+		
 		grievance.setUserEmail(email);
 		grievance.setStatus("OPEN");
 		Grievance saved= repository.save(grievance);

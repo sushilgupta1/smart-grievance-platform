@@ -14,6 +14,8 @@
             rel="stylesheet">
         <!-- FontAwesome -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
         <script>
             tailwind.config = {
@@ -237,6 +239,44 @@
                     <span id="alertMessage"></span>
                     <button onclick="hideAlert()" class="ml-auto text-slate-400 hover:text-white"><i
                             class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Admin Real-Time Analytics Dashboard -->
+                <div id="analyticsBoard" class="hidden mb-6 animate-fade-in">
+                    <!-- KPI Row -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div class="glass-panel p-4 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/5 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-layer-group text-4xl text-blue-500"></i></div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Volume</p>
+                            <h2 class="text-3xl font-black text-white" id="kpiTotal">0</h2>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-check text-4xl text-emerald-500"></i></div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Resolved</p>
+                            <h2 class="text-3xl font-black text-emerald-400" id="kpiResolved">0</h2>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-fuchsia-500/20 shadow-lg shadow-fuchsia-500/5 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-rotate-left text-4xl text-fuchsia-500"></i></div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Disputed</p>
+                            <h2 class="text-3xl font-black text-fuchsia-400" id="kpiDisputed">0</h2>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-red-500/20 shadow-lg shadow-red-500/10 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 p-4 opacity-10 transition-transform group-hover:scale-110"><i class="fa-solid fa-skull-crossbones text-4xl text-red-500"></i></div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SLA Breaches</p>
+                            <h2 class="text-3xl font-black text-red-500 animate-pulse" id="kpiBreached">0</h2>
+                        </div>
+                    </div>
+                    <!-- Chart Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="glass-panel p-4 rounded-xl border border-slate-700/50 relative">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 absolute top-4 left-4"><i class="fa-solid fa-chart-pie text-blue-400 mr-2"></i>Status Distribution</h4>
+                            <div class="h-48 w-full flex justify-center mt-6"><canvas id="statusChart"></canvas></div>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl border border-slate-700/50 relative">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 absolute top-4 left-4"><i class="fa-solid fa-chart-bar text-indigo-400 mr-2"></i>Department Workload</h4>
+                            <div class="h-48 w-full mt-6"><canvas id="categoryChart"></canvas></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- The Real-Time Filter Console (Phase 6) -->
@@ -492,6 +532,7 @@
 
                 renderLoader();
                 document.getElementById('filterConsole').classList.remove('hidden');
+                document.getElementById('analyticsBoard').classList.add('hidden');
                 
                 try {
                     const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/my`);
@@ -600,6 +641,7 @@
                 </div>
             `;
                 document.getElementById('filterConsole').classList.remove('hidden');
+                document.getElementById('analyticsBoard').classList.remove('hidden');
 
                 renderLoader();
                 try {
@@ -607,6 +649,9 @@
                     if (!res.ok) throw new Error("Failed to load global grievances.");
                     allGrievancesArray = await res.json();
                     applyFilters();
+                    
+                    // Trigger Mayor Analytics
+                    setTimeout(() => renderAnalytics(allGrievancesArray), 100);
                 } catch (err) {
                     showAlert('error', err.message);
                     document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load data. Ensure Admin roles are valid.</div>';
@@ -622,6 +667,7 @@
                 </div>
             `;
                 document.getElementById('filterConsole').classList.remove('hidden');
+                document.getElementById('analyticsBoard').classList.add('hidden');
 
                 renderLoader();
                 try {
@@ -980,6 +1026,95 @@
                     btn.innerHTML = 'Open Dispute';
                 }
             });
+
+            /* ================= MAYOR ANALYTICS ENGINE (CHART.JS) ================= */
+            let chartStatus = null;
+            let chartCategory = null;
+
+            function renderAnalytics(data) {
+                if (!data || data.length === 0) return;
+
+                // 1. Calculate KPIs safely checking typo permutations
+                let total = data.length;
+                let resolved = 0;
+                let disputed = 0;
+                let breached = 0;
+
+                const categoryCount = {};
+                const statusCount = {};
+
+                data.forEach(g => {
+                    const s = (g.status || 'OPEN').toUpperCase();
+                    if (s === 'RESOLVED') resolved++;
+                    if (s === 'REOPENED') disputed++;
+                    if (s === 'ESCALATED_SLA_BREACH' || s === 'ESCALATES_SLA_BREACH') breached++;
+
+                    // Count Statuses for Pie Chart
+                    const cleanStatus = s === 'ESCALATES_SLA_BREACH' ? 'ESCALATED_SLA_BREACH' : s;
+                    statusCount[cleanStatus] = (statusCount[cleanStatus] || 0) + 1;
+
+                    // Count Categories for Bar Chart
+                    const cat = g.category || 'Other';
+                    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+                });
+
+                // Update DOM KPIs
+                document.getElementById('kpiTotal').innerText = total;
+                document.getElementById('kpiResolved').innerText = resolved;
+                document.getElementById('kpiDisputed').innerText = disputed;
+                document.getElementById('kpiBreached').innerText = breached;
+
+                // 2. Render Status Doughnut Chart
+                const ctxStatus = document.getElementById('statusChart').getContext('2d');
+                if(chartStatus) chartStatus.destroy();
+                
+                chartStatus = new Chart(ctxStatus, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCount),
+                        datasets: [{
+                            data: Object.values(statusCount),
+                            backgroundColor: ['#60a5fa', '#34d399', '#f472b6', '#ef4444', '#fbbf24', '#a78bfa'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } }
+                        },
+                        cutout: '70%'
+                    }
+                });
+
+                // 3. Render Department Workload Bar Chart
+                const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+                if(chartCategory) chartCategory.destroy();
+
+                chartCategory = new Chart(ctxCategory, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(categoryCount),
+                        datasets: [{
+                            label: 'Total Tickets',
+                            data: Object.values(categoryCount),
+                            backgroundColor: '#818cf8',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { display: false },
+                            x: { grid: { display: false, drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
 
             function showOfficerForm() {
                 hideAlert();

@@ -68,4 +68,7 @@ public class Grievance {
 
 	@Column(name = "user_mobile", length = 15)
 	private String userMobile;
+	
+	@Column(length = 2000)
+	private String citizenMessage;
 }

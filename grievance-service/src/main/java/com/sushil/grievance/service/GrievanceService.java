@@ -1,8 +1,10 @@
 package com.sushil.grievance.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -57,7 +59,6 @@ public class GrievanceService {
 		try {
 			String aiResponse = geminiAiService.analyzeGrievance(request.getDescription());
 			
-			// Bulletproof JSON extractor: LLMs often add text like "Here is your JSON:"
 			int startIndex = aiResponse.indexOf("{");
 			int endIndex = aiResponse.lastIndexOf("}");
 			if (startIndex != -1 && endIndex != -1) {
@@ -129,7 +130,17 @@ public class GrievanceService {
 	
 	public List<Grievance> getMyGrievances(String email)
 	{
-		return repository.findByUserEmail(email);
+		List<Grievance> origionalGrievances = repository.findByUserEmail(email);
+		List<Grievance> securedGrievances = new ArrayList<>();
+		
+		for(Grievance g: origionalGrievances)
+		{
+			Grievance safeClone=new Grievance();
+			BeanUtils.copyProperties(g, safeClone);
+			safeClone.setRemarks(null);
+			securedGrievances.add(safeClone);
+		}
+		return securedGrievances;
 	}
 
 	public List<Grievance> getAllGrievance()
@@ -161,7 +172,7 @@ public class GrievanceService {
 		
 		g.setPublicPostDescription(request.getPublicPostDescription());
 		g.setResolvedAttachmentUrl(request.getResolveAttachmentUrl());
-		
+		g.setCitizenMessage(request.getCitizenMessage());
 		Grievance saved = repository.save(g);
 		
 		if("RESOLVED".equalsIgnoreCase(request.getStatus()))
@@ -171,5 +182,15 @@ public class GrievanceService {
 		return saved;
 		
 		
+	}
+	
+	public Grievance requestReassigment(Long id, String reason)
+	{
+		Grievance g=repository.findById(id).orElseThrow();
+		g.setAssignedTo(null);
+		g.setStatus("OPEN");
+		g.setRemarks("REASSIGNMENT REQUESTED. Justification: "+reason);
+		
+		return repository.save(g);
 	}
 }

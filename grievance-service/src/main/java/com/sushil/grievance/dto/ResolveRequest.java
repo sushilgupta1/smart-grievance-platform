@@ -16,5 +16,7 @@ public class ResolveRequest {
 	private String resolveAttachmentUrl;
 	
 	private String publicPostDescription;
+	
+	private String citizenMessage;
 
 }

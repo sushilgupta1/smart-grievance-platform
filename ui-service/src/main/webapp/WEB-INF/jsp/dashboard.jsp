@@ -294,6 +294,25 @@
             </div>
         </div>
 
+        <!-- Reassignment Reason Modal -->
+        <div id="reassignModal" class="fixed inset-0 z-[60] hidden">
+            <div class="absolute inset-0 bg-dark-900/90 backdrop-blur-md" onclick="closeReassignModal()"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-sm">
+                <div class="glass-panel p-6 rounded-2xl shadow-2xl border border-orange-500/30 animate-fade-in relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500"></div>
+                    <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-person-walking-arrow-right text-orange-400 mr-2"></i> Release Ticket</h3>
+                    <p class="text-xs text-slate-400 mb-4">Please specify a mandatory reason why you cannot complete this assigned ticket.</p>
+                    
+                    <textarea id="reassignReasonTxt" rows="3" class="input-field w-full px-4 py-3 rounded-xl text-sm border-orange-500/20 focus:border-orange-500 mb-4" placeholder="E.g., Require advanced technical team, Currently on leave, Not my jurisdiction..."></textarea>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button onclick="closeReassignModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                        <button id="confirmReassignBtn" class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 transition">Submit Request</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Application Logic -->
         <script>
@@ -752,6 +771,11 @@
                             <label class="block text-xs font-bold text-slate-400 mb-1"><i class="fa-solid fa-lock mr-1"></i> Internal Officer Remarks</label>
                             <textarea id="adminRemarks" rows="2" class="input-field w-full px-3 py-2 rounded-lg text-xs" placeholder="Private case notes... (\${g.remarks ? 'Existing text will be replaced if edited' : 'Visible only to admins'})">\${g.remarks || ''}</textarea>
                         </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-blue-400 mb-1"><i class="fa-solid fa-envelope mr-1"></i> Direct Message to Citizen</label>
+                            <textarea id="citizenMsg" rows="2" class="input-field w-full px-3 py-2 rounded-lg text-xs border-blue-500/30" placeholder="Personalized response directly to the filer... (\${g.citizenMessage ? 'Existing text will be replaced' : 'Only sent to them'})">\${g.citizenMessage || ''}</textarea>
+                        </div>
 
                         <div>
                             <label class="block text-xs font-bold text-emerald-400 mb-1"><i class="fa-solid fa-earth-americas mr-1"></i> Resolution Tweet (Public View)</label>
@@ -790,7 +814,9 @@
                             </div>
                         </div>
 
-                        \${g.publicPostDescription ? `<div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-reply-all mt-0.5 mr-2 text-emerald-400"></i><div><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-0.5">Official Resolution Statement</span>\${escapeHtml(g.publicPostDescription)}</div></div>` : ''}
+                        \${g.citizenMessage ? `<div class="bg-blue-500/10 border border-blue-500/20 text-blue-300 p-4 rounded-xl text-sm mt-3 shadow-inner"><i class="fa-solid fa-envelope-open-text mb-2 text-blue-400 text-lg"></i><div><span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Direct Message from Administration</span><p class="leading-relaxed">\${escapeHtml(g.citizenMessage)}</p></div></div>` : ''}
+
+                        \${g.publicPostDescription ? `<div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-reply-all mt-0.5 mr-2 text-emerald-400"></i><div><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-0.5">Official Public Feed Statement</span>\${escapeHtml(g.publicPostDescription)}</div></div>` : ''}
                         
                         \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10" style="background-image: url('\${g.resolvedAttachmentUrl}')"></div></div>` : ''}
 
@@ -808,12 +834,14 @@
                 const remarksElem = document.getElementById('adminRemarks');
                 const remarks = remarksElem ? remarksElem.value.trim() : "Automated System: Processed via Master Console";
                 const publicTweet = document.getElementById('publicTweet').value.trim();
+                const citizenMsg = document.getElementById('citizenMsg').value.trim();
 
                 try {
                     // Send the secure JSON payload instead of cramped URL parameters
                     const payload = {
                         status: status,
                         remarks: remarks,
+                        citizenMessage: citizenMsg,
                         publicPostDescription: publicTweet,
                         resolveAttachmentUrl: currentBase64Image
                     };
@@ -834,18 +862,46 @@
                 }
             }
             
-            async function requestReassignment(id) {
-                try {
-                	const btn = event.currentTarget;
-                	btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Requesting...';
-                    // Quick PUT to unassign it and flag it Open for SuperAdmin. Our API requires a string.
-                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/assign/\${id}?admin=UNASSIGNED`, { method: 'PUT' });
-                    if(!res.ok) throw new Error("Failed to request reassignment");
-                    showAlert('success', 'Ticket Released Back to the Dispatcher queue!');
-                    closeModal();
-                    loadOfficerView();
-                } catch(e) { alert(e.message); }
+            let activeReassignId = null;
+
+            function requestReassignment(id) {
+                activeReassignId = id;
+                document.getElementById('reassignReasonTxt').value = '';
+                document.getElementById('reassignModal').classList.remove('hidden');
             }
+
+            function closeReassignModal() {
+                activeReassignId = null;
+                document.getElementById('reassignModal').classList.add('hidden');
+            }
+
+            document.getElementById('confirmReassignBtn').addEventListener('click', async () => {
+                const reason = document.getElementById('reassignReasonTxt').value.trim();
+                if (!reason) {
+                    showAlert('error', 'A justification reason is strictly required!');
+                    return;
+                }
+
+                const btn = document.getElementById('confirmReassignBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Submitting...';
+
+                try {
+                    // Call the dedicated Reassignment Endpoint
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/\${activeReassignId}/reassign?reason=\${encodeURIComponent(reason)}`, { method: 'PUT' });
+                    if(!res.ok) throw new Error("Failed to request reassignment");
+                    
+                    showAlert('success', 'Ticket successfully released back to the Dispatcher queue!');
+                    closeReassignModal();
+                    closeModal(); // Close master background modal too
+                    loadOfficerView();
+                } catch(e) { 
+                    showAlert('error', e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Submit Request';
+                }
+            });
 
             function showOfficerForm() {
                 hideAlert();

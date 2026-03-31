@@ -97,4 +97,11 @@ public class GrievanceController {
 		String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 		return ResponseEntity.ok(service.getAssignedGrievance(adminEmail));
 	}
+	
+	@PutMapping("/{id}/reassign")
+	@PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
+	public Grievance reassign(@PathVariable Long id, @RequestParam String reason)
+	{
+		return service.requestReassigment(id, reason);
+	}
 }

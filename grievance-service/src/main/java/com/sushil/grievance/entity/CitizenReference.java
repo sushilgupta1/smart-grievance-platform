@@ -19,4 +19,11 @@ public class CitizenReference {
 
 	@Column(name = "user_mobile", length = 15)
 	private String userMobile;
+	
+	@Column(length = 20)
+	private String role;
+	
+	@Column(length = 50)
+	private String department;
+	
 }

@@ -24,17 +24,21 @@ public class KafkaConsumerService {
 			ObjectMapper mapper = new ObjectMapper();
 			JsonNode payload = mapper.readTree(jsonMessage);
 			
-			String email= payload.path("email").asText();
-			String mobile= payload.path("mobile").asText();
+			String email= payload.path("email").asText("");
+			String mobile= payload.path("mobile").asText("");
+			String role=payload.path("role").asText("USER");
+			String department=payload.path("department").asText("");
 			
-			if(!email.isEmpty() && !mobile.isEmpty())
+			if(!email.isEmpty() )
 			{
 				CitizenReference citizen = new CitizenReference();
 				citizen.setEmail(email);
 				citizen.setUserMobile(mobile);
+				citizen.setRole(role);
+				citizen.setDepartment(department);
 				
 				citizenRepo.save(citizen);
-				System.out.println("Synchronized Citizen Profile for: "+email);
+				System.out.println("Synchronized Citizen Profile for: "+email+"| Role: "+role);
 			}
 		} catch (Exception e) {
 

@@ -78,7 +78,30 @@ public class GrievanceService {
 			grievance.setPriorityScore(1);
 		}
 		
-		
+		try {
+			List<CitizenReference> availableOfficers = citizenRepo.findByRoleAndDepartment("OFFICER", grievance.getCategory());
+			if (availableOfficers != null && !availableOfficers.isEmpty()) {
+				String bestOfficerEmail = null;
+				long lowestWorkload = Long.MAX_VALUE;
+				
+				for (CitizenReference officer : availableOfficers) {
+					long currentLoad = repository.countActiveTicketsForOfficer(officer.getEmail());
+					if (currentLoad < lowestWorkload) {
+						lowestWorkload = currentLoad;
+						bestOfficerEmail = officer.getEmail();
+					}
+				}
+				
+				if (bestOfficerEmail != null) {
+					grievance.setAssignedTo(bestOfficerEmail);
+					System.out.println("Assigned ticket to least-loaded officer: " + bestOfficerEmail + " (Load: " + lowestWorkload + ")");
+				}
+			} else {
+			    System.out.println("No officers available for department: " + grievance.getCategory());
+			}
+		} catch(Exception e) {
+			System.err.println("Officer Routing Failed: " + e.getMessage());
+		}
 		Grievance saved= repository.save(grievance);
 		
 		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+email);
@@ -123,6 +146,12 @@ public class GrievanceService {
 	{
 		return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Grievance not found"));
 	}
+	
+	public List<Grievance> getAssignedGrievance(String officerEmail)
+	{
+		return repository.findByAssignedTo(officerEmail);
+	}
+	
 	
 	public Grievance updateResolution(Long id, ResolveRequest request) {
 		Grievance g = repository.findById(id).orElseThrow();

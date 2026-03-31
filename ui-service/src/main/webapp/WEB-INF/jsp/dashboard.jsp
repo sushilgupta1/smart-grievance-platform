@@ -167,7 +167,8 @@
             }
 
             const roles = decoded.roles || decoded.role || '';
-            const isAdmin = roles.includes('ADMIN');
+            const isAdmin = roles.includes('ADMIN') || roles.includes('SUPERADMIN');
+            const isOfficer = roles.includes('OFFICER');
             const userEmail = decoded.sub || 'User';
 
         </script>
@@ -238,6 +239,34 @@
                             class="fa-solid fa-xmark"></i></button>
                 </div>
 
+                <!-- The Real-Time Filter Console (Phase 6) -->
+                <div id="filterConsole" class="hidden glass-panel p-4 rounded-xl mb-6 shadow-md border border-slate-700/50 bg-slate-800/20">
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest w-full md:w-auto"><i class="fa-solid fa-filter mr-1"></i> Filter Grid:</div>
+                        <select id="filterStatus" onchange="applyFilters()" class="input-field px-4 py-2 rounded-lg text-sm flex-1 w-full outline-none border border-slate-700">
+                            <option value="ALL">All Statuses</option>
+                            <option value="OPEN">Open Only</option>
+                            <option value="IN PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                        </select>
+                        <select id="filterCategory" onchange="applyFilters()" class="input-field px-4 py-2 rounded-lg text-sm flex-1 w-full outline-none border border-slate-700">
+                            <option value="ALL">All Categories</option>
+                            <option value="Water">Water</option>
+                            <option value="Electricity">Electricity</option>
+                            <option value="Roads">Roads</option>
+                            <option value="Sanitation">Sanitation</option>
+                            <option value="Public Safety">Public Safety</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <select id="filterPriority" onchange="applyFilters()" class="input-field px-4 py-2 rounded-lg text-sm flex-1 w-full outline-none border border-slate-700">
+                            <option value="ALL">All Priorities</option>
+                            <option value="HIGH">High (Lvl 8-10)</option>
+                            <option value="MED">Medium (Lvl 5-7)</option>
+                            <option value="LOW">Low (Lvl 1-4)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Dynamic Workspace Content -->
                 <div id="workspaceContent" class="animate-fade-in relative min-h-[300px]">
                     <div class="absolute inset-0 flex items-center justify-center">
@@ -272,8 +301,35 @@
             let currentBase64Image = "";
 
             // Initialize UI based on role
-            document.getElementById('roleText').textContent = isAdmin ? 'Administrator' : 'User';
+            let displayRole = 'User';
+            if(isAdmin) displayRole = 'Administrator';
+            else if(isOfficer) displayRole = 'Field Officer';
+            
+            document.getElementById('roleText').textContent = displayRole;
             // Base64 Image Encoder
+            
+            let allGrievancesArray = []; // Used for ultra-fast UI filtering
+            
+            function applyFilters() {
+                if(!allGrievancesArray) return;
+                const status = document.getElementById('filterStatus').value;
+                const category = document.getElementById('filterCategory').value;
+                const priority = document.getElementById('filterPriority').value;
+                
+                let filtered = allGrievancesArray.filter(g => {
+                    let matchStatus = status === 'ALL' || (g.status && g.status.toUpperCase() === status);
+                    let matchCategory = category === 'ALL' || (g.category && g.category.toUpperCase() === category.toUpperCase());
+                    
+                    let matchPriority = true;
+                    const p = g.priorityScore || 1;
+                    if(priority === 'HIGH') matchPriority = p >= 8;
+                    else if(priority === 'MED') matchPriority = (p >= 5 && p < 8);
+                    else if(priority === 'LOW') matchPriority = p < 5;
+                    
+                    return matchStatus && matchCategory && matchPriority;
+                });
+                renderGrievanceGrid(filtered, isAdmin || isOfficer);
+            }
             function handleImageUpload(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -307,6 +363,15 @@
                 nav.innerHTML = `
                 <a href="#" onclick="loadAdminView()" class="flex items-center px-4 py-3 bg-blue-500/10 text-blue-400 rounded-xl font-medium transition border border-blue-500/20">
                     <i class="fa-solid fa-layer-group w-5"></i> All Grievances
+                </a>
+                <a href="#" onclick="showOfficerForm()" class="flex items-center px-4 py-3 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl font-medium transition cursor-pointer mt-1">
+                    <i class="fa-solid fa-user-plus w-5"></i> Promote Officer
+                </a>
+            `;
+            } else if (isOfficer) {
+                nav.innerHTML = `
+                <a href="#" onclick="loadOfficerView()" class="flex items-center px-4 py-3 bg-indigo-500/10 text-indigo-400 rounded-xl font-medium transition border border-indigo-500/20">
+                    <i class="fa-solid fa-briefcase w-5"></i> My Assignments
                 </a>
             `;
             } else {
@@ -385,11 +450,13 @@
             `;
 
                 renderLoader();
+                document.getElementById('filterConsole').classList.remove('hidden');
+                
                 try {
                     const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/my`);
                     if (!res.ok) throw new Error("Failed to load grievances.");
-                    const data = await res.json();
-                    renderGrievanceGrid(data, false);
+                    allGrievancesArray = await res.json();
+                    applyFilters();
                 } catch (err) {
                     showAlert('error', err.message);
                     document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load data.</div>';
@@ -398,6 +465,7 @@
 
             function showNewGrievanceForm() {
                 hideAlert();
+                document.getElementById('filterConsole').classList.add('hidden');
                 document.getElementById('pageTitle').textContent = 'File a Grievance';
                 document.getElementById('pageSubtitle').textContent = 'Submit a new issue to the administration.';
                 document.getElementById('headerActions').innerHTML = `
@@ -490,16 +558,39 @@
                     <i class="fa-solid fa-shield-halved text-blue-500 mr-2"></i> Admin Privileges Active
                 </div>
             `;
+                document.getElementById('filterConsole').classList.remove('hidden');
 
                 renderLoader();
                 try {
                     const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/all`);
                     if (!res.ok) throw new Error("Failed to load global grievances.");
-                    const data = await res.json();
-                    renderGrievanceGrid(data, true);
+                    allGrievancesArray = await res.json();
+                    applyFilters();
                 } catch (err) {
                     showAlert('error', err.message);
                     document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load data. Ensure Admin roles are valid.</div>';
+                }
+            }
+
+            async function loadOfficerView() {
+                document.getElementById('pageTitle').textContent = 'My Assignments';
+                document.getElementById('pageSubtitle').textContent = 'Grievances dynamically dispatched to you by the AI Router.';
+                document.getElementById('headerActions').innerHTML = `
+                <div class="glass-panel px-4 py-2 rounded-xl text-sm text-indigo-300 flex items-center shadow-inner border-indigo-500/20">
+                    <i class="fa-solid fa-user-tie text-indigo-400 mr-2"></i> Official Field Agent
+                </div>
+            `;
+                document.getElementById('filterConsole').classList.remove('hidden');
+
+                renderLoader();
+                try {
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/assigned`);
+                    if (!res.ok) throw new Error("Failed to load assignments.");
+                    allGrievancesArray = await res.json();
+                    applyFilters();
+                } catch (err) {
+                    showAlert('error', err.message);
+                    document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load task list.</div>';
                 }
             }
 
@@ -624,21 +715,29 @@
                         <div class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner" style="background-image: url('\${g.attachmentUrl}')"></div>
                     </div>` : `<div class="mb-4 text-xs font-semibold text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 border-dashed text-center"><i class="fa-solid fa-image-slash mb-1 text-lg"></i><br/>No Photo Attached</div>`;
 
-                // If user is Admin, they get the Action tools at the bottom!
+                // If user is Admin or Officer, they get the Action tools at the bottom!
                 let actionControlsHtml = '';
-                if (isAdmin) {
-                    actionControlsHtml = `
-                    <div class="mt-6 border-t border-slate-700/50 pt-5 space-y-4 bg-slate-900/40 -mx-6 -mb-6 p-6 rounded-b-2xl">
-                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> Admin Action Console</h4>
-                        
-                        <div class="grid grid-cols-2 gap-4 flex-wrap">
+                if (isAdmin || isOfficer) {
+                    let assignBlock = isAdmin ? `
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Assign Officer Email</label>
                                 <div class="flex">
                                     <input type="email" id="assignTarget" value="\${g.assignedTo || userEmail}" class="input-field w-full px-3 py-2 rounded-l-lg text-[10px]" placeholder="admin@example.com">
                                     <button onclick="submitAssign(\${g.id})" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-r-lg font-bold shadow-lg"><i class="fa-solid fa-user-plus"></i></button>
                                 </div>
+                            </div>` : `
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Status Override</label>
+                                <button onclick="requestReassignment(\${g.id})" class="bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 text-orange-400 text-[10px] w-full py-2.5 rounded-lg font-bold transition flex items-center justify-center tracking-wider uppercase"><i class="fa-solid fa-person-walking-arrow-right mr-2"></i> Request Reassignment</button>
                             </div>
+                    `;
+
+                    actionControlsHtml = `
+                    <div class="mt-6 border-t border-slate-700/50 pt-5 space-y-4 bg-slate-900/40 -mx-6 -mb-6 p-6 rounded-b-2xl">
+                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-widest"><i class="fa-solid fa-bolt mr-1"></i> \${isAdmin ? 'Admin' : 'Officer'} Action Console</h4>
+                        
+                        <div class="grid grid-cols-2 gap-4 flex-wrap items-end">
+                            \${assignBlock}
                             <div>
                                 <label class="block text-xs font-medium text-slate-400 mb-1">Current Status</label>
                                 <select id="newStatus" class="input-field w-full px-3 py-2 rounded-lg text-xs appearance-none">
@@ -695,7 +794,7 @@
                         
                         \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10" style="background-image: url('\${g.resolvedAttachmentUrl}')"></div></div>` : ''}
 
-                        \${(isAdmin && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
+                        \${((isAdmin || isOfficer) && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
                     </div>
                     \${actionControlsHtml}
                 </div>`;
@@ -728,17 +827,104 @@
                     
                     showAlert('success', 'Status & Civic Tweet published successfully!');
                     closeModal();
-                    loadAdminView();
+                    if(isOfficer) loadOfficerView();
+                    else loadAdminView();
                 } catch (err) {
                     alert(err.message);
                 }
             }
+            
+            async function requestReassignment(id) {
+                try {
+                	const btn = event.currentTarget;
+                	btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Requesting...';
+                    // Quick PUT to unassign it and flag it Open for SuperAdmin. Our API requires a string.
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/assign/\${id}?admin=UNASSIGNED`, { method: 'PUT' });
+                    if(!res.ok) throw new Error("Failed to request reassignment");
+                    showAlert('success', 'Ticket Released Back to the Dispatcher queue!');
+                    closeModal();
+                    loadOfficerView();
+                } catch(e) { alert(e.message); }
+            }
 
+            function showOfficerForm() {
+                hideAlert();
+                document.getElementById('filterConsole').classList.add('hidden');
+                document.getElementById('pageTitle').textContent = 'Promote Officer';
+                document.getElementById('pageSubtitle').textContent = 'Assign citizens to internal Department roles securely.';
+                document.getElementById('headerActions').innerHTML = `
+                <button onclick="loadAdminView()" class="glass-panel text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-medium transition flex items-center">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Back to Dashboard
+                </button>`;
 
+                const formHtml = `
+                <div class="glass-panel p-6 md:p-8 rounded-3xl max-w-lg shadow-xl mx-auto border border-emerald-500/30">
+                    <form onsubmit="event.preventDefault(); submitPromotion();" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-300 mb-2 tracking-wide">Citizen Email Identity</label>
+                            <input type="email" id="proEmail" required class="input-field w-full px-4 py-3 rounded-xl text-sm" placeholder="user@gmail.com">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2 tracking-wide">Privilege Role</label>
+                                <select id="proRole" class="input-field w-full px-4 py-3 rounded-xl text-sm border-blue-500/30">
+                                    <option value="OFFICER">OFFICER</option>
+                                    <option value="SUPERADMIN">SUPERADMIN</option>
+                                    <option value="USER">USER (Demote)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-300 mb-2 tracking-wide">Department</label>
+                                <select id="proDept" class="input-field w-full px-4 py-3 rounded-xl text-sm border-emerald-500/30">
+                                    <option value="Water">Water</option>
+                                    <option value="Electricity">Electricity</option>
+                                    <option value="Roads">Roads</option>
+                                    <option value="Sanitation">Sanitation</option>
+                                    <option value="Security">Public Safety</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="pt-4">
+                            <button type="submit" id="proBtn" class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-8 py-4 rounded-xl font-extrabold shadow-lg shadow-emerald-500/25 transition text-lg tracking-wider">
+                                <i class="fa-solid fa-fingerprint mr-2"></i> Provision Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                `;
+                document.getElementById('workspaceContent').innerHTML = formHtml;
+            }
+
+            async function submitPromotion() {
+                const email = document.getElementById('proEmail').value.trim();
+                const role = document.getElementById('proRole').value;
+                const dept = document.getElementById('proDept').value;
+                const btn = document.getElementById('proBtn');
+                
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Promoting...';
+                
+                try {
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/auth/promote`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ email: email, role: role, department: dept })
+                    });
+                    if(!res.ok) throw new Error("Failed to promote user! Verify email is correct.");
+                    showAlert('success', 'User successfully provisioned to ' + dept + ' ' + role);
+                    setTimeout(() => loadAdminView(), 2000);
+                } catch(err) {
+                    showAlert('error', err.message);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Provision Account';
+                }
+            }
 
             // INITIALIZATION KICK-OFF
             if (isAdmin) {
                 loadAdminView();
+            } else if(isOfficer) {
+                loadOfficerView();
             } else {
                 loadUserView();
             }

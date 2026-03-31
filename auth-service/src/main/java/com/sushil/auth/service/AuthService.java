@@ -5,6 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.sushil.auth.dto.LoginRequest;
+import com.sushil.auth.dto.PromoteRequest;
 import com.sushil.auth.dto.RegisterRequest;
 import com.sushil.auth.entity.User;
 import com.sushil.auth.kafka.KafkaProducerService;
@@ -56,6 +57,24 @@ public class AuthService {
 		return "User saved in DB";
 		
 		 
+	}
+	
+	public String promoteUser(PromoteRequest request, String adminEmail)
+	{
+		User user= userRepository.findByEmail(request.getEmail()).orElseThrow(()->new RuntimeException("User not found"));
+		
+		user.setRole(request.getRole());
+		user.setDepartment(request.getDepartment());
+		
+		userRepository.save(user);
+		
+		String kafkaPayload =  String.format("{\"email\": \"%s\", \"mobile\": \"%s\", \"role\": \"%s\", \"department\": \"%s\"}", 
+				user.getEmail(), user.getMobileNumber(), user.getRole(), user.getDepartment());
+		
+		kafkaProducerService.sendMessage(kafkaPayload);
+		
+		return "User "+user.getEmail()+" successfully promoted to "+ user.getRole();
+	
 	}
 
 }

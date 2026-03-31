@@ -4,6 +4,7 @@ import java.util.List;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -88,5 +89,12 @@ public class GrievanceController {
 	@PutMapping("/{id}/status")
 	public Grievance updateStatus(@PathVariable Long id, @RequestBody ResolveRequest request) {
 		return service.updateResolution(id, request);
+	}
+	
+	@GetMapping("/assigned")
+	public ResponseEntity<List<Grievance>> getAssignedGrievance()
+	{
+		String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(service.getAssignedGrievance(adminEmail));
 	}
 }

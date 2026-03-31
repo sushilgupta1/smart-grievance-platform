@@ -1,5 +1,7 @@
 package com.sushil.auth.entity;
 
+import org.hibernate.annotations.DialectOverride.ColumnDefault;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,4 +36,6 @@ public class User {
 	@Column(name = "mobile_number", length = 15, unique = true)
 	private String mobileNumber;
 
+	@Column(length = 50)
+	private String department;
 }

@@ -1,5 +1,6 @@
 package com.sushil.grievance.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,6 @@ public interface GrievanceRepository extends JpaRepository<Grievance, Long> {
 	long countActiveTicketsForOfficer(@Param("email") String email);
 	
 	List<Grievance> findByAssignedTo(String assignedTo);
+	
+	List<Grievance> findByStatusInAndCreatedAtBefore(List<String> statuses, LocalDateTime date);
 }

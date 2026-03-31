@@ -87,6 +87,7 @@ public class GrievanceController {
 	}
 	
 	@PutMapping("/{id}/status")
+	@PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
 	public Grievance updateStatus(@PathVariable Long id, @RequestBody ResolveRequest request) {
 		return service.updateResolution(id, request);
 	}
@@ -103,5 +104,13 @@ public class GrievanceController {
 	public Grievance reassign(@PathVariable Long id, @RequestParam String reason)
 	{
 		return service.requestReassigment(id, reason);
+	}
+	
+	@PutMapping("/{id}/reopen")
+	public Grievance reopenTicket(@PathVariable Long id, @RequestParam(required = false) String reason)
+	{
+		String citizenEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+		return service.reopenGrievance(id, reason, citizenEmail);
+		
 	}
 }

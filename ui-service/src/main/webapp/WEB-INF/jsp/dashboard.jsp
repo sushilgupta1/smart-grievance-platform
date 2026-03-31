@@ -248,6 +248,8 @@
                             <option value="OPEN">Open Only</option>
                             <option value="IN PROGRESS">In Progress</option>
                             <option value="RESOLVED">Resolved</option>
+                            <option value="REOPENED">Disputed / Re-Opened</option>
+                            <option value="ESCALATED_SLA_BREACH">SLA Breach (Escalated)</option>
                         </select>
                         <select id="filterCategory" onchange="applyFilters()" class="input-field px-4 py-2 rounded-lg text-sm flex-1 w-full outline-none border border-slate-700">
                             <option value="ALL">All Categories</option>
@@ -313,6 +315,24 @@
             </div>
         </div>
 
+        <!-- Citizen Dispute Modal -->
+        <div id="disputeModal" class="fixed inset-0 z-[60] hidden">
+            <div class="absolute inset-0 bg-dark-900/90 backdrop-blur-md" onclick="closeDisputeModal()"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-sm">
+                <div class="glass-panel p-6 rounded-2xl shadow-2xl border border-fuchsia-500/30 animate-fade-in relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fuchsia-500 to-purple-600"></div>
+                    <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-triangle-exclamation text-fuchsia-400 mr-2"></i> Dispute Resolution</h3>
+                    <p class="text-xs text-slate-400 mb-4">Please specify exactly why you are unsatisfied with the resolution. This will immediately alert the administration.</p>
+                    
+                    <textarea id="disputeReasonTxt" rows="3" class="input-field w-full px-4 py-3 rounded-xl text-sm border-fuchsia-500/20 focus:border-fuchsia-500 mb-4" placeholder="E.g., The pothole was only partially filled..."></textarea>
+                    
+                    <div class="flex justify-end gap-3">
+                        <button onclick="closeDisputeModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                        <button id="confirmDisputeBtn" class="bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-lg shadow-fuchsia-500/20 transition">Open Dispute</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Application Logic -->
         <script>
@@ -452,6 +472,8 @@
             function getStatusBadge(status) {
                 const s = (status || 'OPEN').toUpperCase();
                 if (s === 'RESOLVED') return '<span class="status-badge status-resolved"><i class="fa-solid fa-check mr-1"></i> Resolved</span>';
+                if (s === 'ESCALATED_SLA_BREACH' || s === 'ESCALATES_SLA_BREACH') return '<span class="status-badge bg-red-500/20 text-red-500 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.5)] px-3 animate-pulse"><i class="fa-solid fa-skull-crossbones mr-1"></i> SLA Breach: Escalated</span>';
+                if (s === 'REOPENED') return '<span class="status-badge bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 shadow-lg shadow-fuchsia-500/20 px-3"><i class="fa-solid fa-rotate-left mr-1"></i> Disputed / Re-Opened</span>';
                 if (s === 'IN PROGRESS') return '<span class="status-badge status-inprogress"><i class="fa-solid fa-spinner fa-spin-pulse mr-1"></i> In Progress</span>';
                 return '<span class="status-badge status-open"><i class="fa-solid fa-circle-dot mr-1"></i> Open</span>';
             }
@@ -726,7 +748,13 @@
                 const g = typeof grievanceJson === 'string' ? JSON.parse(grievanceJson) : grievanceJson;
                 currentBase64Image = "";
 
-                document.getElementById('modalTitle').innerHTML = `Grievance #\${g.id} <span class="text-sm font-normal text-slate-400 ml-2">\${g.category ? escapeHtml(g.category) : 'Uncategorized'}</span>`;
+                document.getElementById('modalTitle').innerHTML = `
+                    <div class="flex items-center gap-3">
+                        Grievance #\${g.id} 
+                        \${getStatusBadge(g.status)}
+                        <span class="text-sm font-normal text-slate-400">\${g.category ? escapeHtml(g.category) : 'Uncategorized'}</span>
+                    </div>
+                `;
 
                 const photoHtml = g.attachmentUrl ? `
                     <div class="mb-4">
@@ -762,7 +790,9 @@
                                 <select id="newStatus" class="input-field w-full px-3 py-2 rounded-lg text-xs appearance-none">
                                     <option value="OPEN" \${g.status === 'OPEN' ? 'selected' : ''}>Open</option>
                                     <option value="IN PROGRESS" \${g.status === 'IN PROGRESS' ? 'selected' : ''}>In Progress</option>
+                                    <option value="ESCALATED_SLA_BREACH" \${g.status === 'ESCALATED_SLA_BREACH' ? 'selected' : ''}>SLA Breach / Escalate</option>
                                     <option value="RESOLVED" \${g.status === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
+                                    <option value="REOPENED" \${g.status === 'REOPENED' ? 'selected' : ''}>Re-Opened</option>
                                 </select>
                             </div>
                         </div>
@@ -822,6 +852,14 @@
 
                         \${((isAdmin || isOfficer) && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
                     </div>
+                    
+                    \${(userEmail === g.userEmail && g.status === 'RESOLVED') ? `
+                    <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-end">
+                        <button onclick="reopenTicket(\${g.id})" class="text-xs bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 px-4 py-2 rounded-lg font-bold transition flex items-center shadow-lg shadow-fuchsia-500/10">
+                            <i class="fa-solid fa-triangle-exclamation mr-2"></i> Not Satisfied? Dispute & Re-Open Ticket
+                        </button>
+                    </div>` : ''}
+
                     \${actionControlsHtml}
                 </div>`;
                 
@@ -900,6 +938,46 @@
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = 'Submit Request';
+                }
+            });
+
+            let activeDisputeId = null;
+
+            function reopenTicket(id) {
+                activeDisputeId = id;
+                document.getElementById('disputeReasonTxt').value = '';
+                document.getElementById('disputeModal').classList.remove('hidden');
+            }
+
+            function closeDisputeModal() {
+                activeDisputeId = null;
+                document.getElementById('disputeModal').classList.add('hidden');
+            }
+
+            document.getElementById('confirmDisputeBtn').addEventListener('click', async () => {
+                const reason = document.getElementById('disputeReasonTxt').value.trim();
+                if (!reason) {
+                    showAlert('error', 'Please provide a reason to raise a formal dispute!');
+                    return;
+                }
+
+                const btn = document.getElementById('confirmDisputeBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Opening...';
+
+                try {
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/\${activeDisputeId}/reopen?reason=\${encodeURIComponent(reason)}`, { method: 'PUT' });
+                    if(!res.ok) throw new Error("Failed to re-open ticket! Make sure your API is updated.");
+                    
+                    showAlert('success', 'Dispute raised! Your ticket has been instantly Re-Opened for the SuperAdmin.');
+                    closeDisputeModal();
+                    closeModal(); // Close master background modal too
+                    loadUserView();
+                } catch(err) {
+                    showAlert('error', err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Open Dispute';
                 }
             });
 

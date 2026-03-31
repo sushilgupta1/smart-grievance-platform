@@ -193,4 +193,25 @@ public class GrievanceService {
 		
 		return repository.save(g);
 	}
+	
+	public Grievance reopenGrievance(Long id, String reason, String citizenEmail)
+	{
+		Grievance g= repository.findById(id).orElseThrow();
+		
+		if(!g.getUserEmail().equalsIgnoreCase(citizenEmail))
+		{
+			throw new RuntimeException("Unauthorized: only the true owner can dispute this ticket");
+		}
+		
+		g.setStatus("REOPENED");
+		
+		String currentRemark= g.getRemarks()==null?"":g.getRemarks()+"\n";
+		String disputeText = (reason!=null && !reason.trim().isEmpty())?reason:"Issue was not resolved properly.";
+		g.setRemarks(currentRemark+"CITIZEN DISPUTE FILED: "+disputeText);
+		
+		Grievance saved=repository.save(g);
+		kafkaProducerService.sendMessage("URGENT: Grievance #"+id+" was RE-OPENED by the citizen!");
+		
+		return saved;
+	}
 }

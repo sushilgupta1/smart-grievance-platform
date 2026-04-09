@@ -278,7 +278,7 @@
                     class="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 bg-slate-800">
                   <label for="remember" class="ml-2 text-xs text-slate-400">Remember me</label>
                 </div>
-                <a href="#" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition w-fit">Forgot
+                <a href="#" onclick="showForgotPassword()" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition w-fit">Forgot
                   password?</a>
               </div>
 
@@ -287,6 +287,58 @@
                 <span id="btnText" class="relative">Sign In to Dashboard</span>
                 <i id="btnIcon" class="fa-solid fa-arrow-right ml-2 relative group-hover:translate-x-1 transition-transform"></i>
                 <div id="btnLoader" class="loader hidden ml-2 relative"></div>
+              </button>
+            </form>
+
+            <!-- FORGOT PASSWORD FORM (Hidden by default) -->
+            <form id="forgotPasswordForm" onsubmit="event.preventDefault(); handleForgotPassword();" class="hidden space-y-4">
+              <div class="text-center mb-6">
+                 <h3 class="text-xl font-bold text-white mb-2">Reset Password</h3>
+                 <p class="text-xs text-slate-400">Enter your email and we'll generate a reset token.</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">Registered Email Address</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-regular fa-envelope text-slate-500"></i>
+                  </div>
+                  <input type="email" id="forgotEmail" required class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" placeholder="admin@example.com">
+                </div>
+              </div>
+              <button type="submit" id="forgotBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-bold flex items-center justify-center transition-all mt-4 border border-slate-600">
+                <span id="forgotBtnText">Send Reset Token</span>
+                <div id="forgotBtnLoader" class="loader hidden ml-2"></div>
+              </button>
+              <div class="text-center mt-4">
+                 <a href="#" onclick="showLogin()" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i> Back to Login</a>
+              </div>
+            </form>
+
+            <!-- RESET PASSWORD FORM (Hidden by default) -->
+            <form id="resetPasswordForm" onsubmit="event.preventDefault(); handleResetPassword();" class="hidden space-y-4">
+              <div class="text-center mb-6">
+                 <h3 class="text-xl font-bold text-white mb-2">Create New Password</h3>
+                 <p class="text-xs text-slate-400">Enter the 6-digit token from your console.</p>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1 text-center">6-Digit Target Token</label>
+                <input type="text" id="resetToken" required maxlength="6" pattern="[0-9]{6}" class="input-field w-full py-3 rounded-xl text-center text-xl tracking-[0.5em] font-bold font-mono" placeholder="••••••">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1">New Password</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-shield-halved text-slate-500"></i>
+                  </div>
+                  <input type="password" id="newPassword" required class="input-field w-full pl-11 pr-4 py-3 rounded-xl text-sm" placeholder="••••••••">
+                </div>
+              </div>
+
+              <button type="submit" id="resetBtn" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 rounded-xl font-bold flex items-center justify-center transition-all mt-4">
+                <span id="resetBtnText">Confirm Password Reset</span>
+                <div id="resetBtnLoader" class="loader hidden ml-2"></div>
               </button>
             </form>
 
@@ -404,6 +456,101 @@
           btnLoader.classList.add('hidden');
           btnIcon.classList.remove('hidden');
           btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+      }
+
+      // UI Toggles
+      function showForgotPassword() {
+        hideAlert();
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('resetPasswordForm').classList.add('hidden');
+        document.getElementById('forgotPasswordForm').classList.remove('hidden');
+      }
+
+      function showLogin() {
+        hideAlert();
+        document.getElementById('forgotPasswordForm').classList.add('hidden');
+        document.getElementById('resetPasswordForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+      }
+
+      // Request Password Reset Token
+      async function handleForgotPassword() {
+        const email = document.getElementById('forgotEmail').value.trim();
+        const btnText = document.getElementById('forgotBtnText');
+        const btnLoader = document.getElementById('forgotBtnLoader');
+        const btn = document.getElementById('forgotBtn');
+
+        if(!email) return;
+        hideAlert();
+        btn.disabled = true;
+        btnText.textContent = 'Generating...';
+        btnLoader.classList.remove('hidden');
+
+        try {
+          const response = await fetch(`\${API_GATEWAY_URL}/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || 'Error generating token');
+          }
+
+          showAlert('success', 'Token Generated! Check IDE Console.');
+          
+          // Switch to Reset Form
+          document.getElementById('forgotPasswordForm').classList.add('hidden');
+          document.getElementById('resetPasswordForm').classList.remove('hidden');
+
+        } catch (err) {
+          showAlert('error', err.message);
+        } finally {
+          btn.disabled = false;
+          btnText.textContent = 'Send Reset Token';
+          btnLoader.classList.add('hidden');
+        }
+      }
+
+      // Submit New Password
+      async function handleResetPassword() {
+        const email = document.getElementById('forgotEmail').value.trim();
+        const token = document.getElementById('resetToken').value.trim();
+        const newPassword = document.getElementById('newPassword').value.trim();
+        
+        const btnText = document.getElementById('resetBtnText');
+        const btnLoader = document.getElementById('resetBtnLoader');
+        const btn = document.getElementById('resetBtn');
+
+        if(!token || !newPassword) return;
+        hideAlert();
+        btn.disabled = true;
+        btnText.textContent = 'Resetting...';
+        btnLoader.classList.remove('hidden');
+
+        try {
+          const response = await fetch(`\${API_GATEWAY_URL}/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, token: token, newPassword: newPassword })
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || 'Invalid token');
+          }
+
+          showAlert('success', 'Password updated successfully! Please Login.');
+          setTimeout(() => showLogin(), 2000);
+
+        } catch (err) {
+          showAlert('error', err.message);
+        } finally {
+          btn.disabled = false;
+          btnText.textContent = 'Confirm Password Reset';
+          btnLoader.classList.add('hidden');
         }
       }
 

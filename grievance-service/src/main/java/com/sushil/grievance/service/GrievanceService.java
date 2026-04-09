@@ -196,13 +196,19 @@ public class GrievanceService {
 	
 	public Grievance reopenGrievance(Long id, String reason, String citizenEmail)
 	{
-		Grievance g= repository.findById(id).orElseThrow();
+		Grievance g= repository.findById(id).orElseThrow(()-> new RuntimeException("Grievance not found"));
+		
+		if(g.getReopenCount()>=1)
+		{
+			throw new RuntimeException("Maximum dispute limit exhausted. This ticket is permanently sealed.");
+		}		
 		
 		if(!g.getUserEmail().equalsIgnoreCase(citizenEmail))
 		{
 			throw new RuntimeException("Unauthorized: only the true owner can dispute this ticket");
 		}
 		
+		g.setReopenCount(g.getReopenCount()+1);
 		g.setStatus("REOPENED");
 		
 		String currentRemark= g.getRemarks()==null?"":g.getRemarks()+"\n";

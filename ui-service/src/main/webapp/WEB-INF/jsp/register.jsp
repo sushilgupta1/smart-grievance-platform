@@ -291,6 +291,28 @@
                     </button>
                 </form>
 
+                <!-- OTP Verification Form (Hidden by Default) -->
+                <form id="otpForm" onsubmit="event.preventDefault(); handleOtpVerify();" class="hidden space-y-5">
+                    <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center mb-2">
+                        <i class="fa-solid fa-envelope-circle-check text-blue-400 text-3xl mb-2"></i>
+                        <h3 class="text-white font-bold text-lg">Verify Your Email</h3>
+                        <p class="text-sm text-slate-400 mt-1">We generated a 6-digit confirmation code.<br/>(For testing: Check your Eclipse IDE Console!)</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1.5 ml-1 text-center">Enter OTP Code</label>
+                        <input type="text" id="otpCode" required maxlength="6" pattern="[0-9]{6}"
+                            class="input-field w-full py-4 rounded-xl text-center text-2xl tracking-[1em] font-bold font-mono" placeholder="••••••">
+                    </div>
+
+                    <button type="submit" id="verifyBtn"
+                        class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3.5 rounded-xl font-bold flex items-center justify-center transition-all duration-300 transform shadow-lg shadow-emerald-500/25 group overflow-hidden relative">
+                        <span id="verifyBtnText" class="relative">Verify Account</span>
+                        <i id="verifyBtnIcon" class="fa-solid fa-check ml-2 relative group-hover:scale-110 transition-transform"></i>
+                        <div id="verifyBtnLoader" class="loader hidden ml-2 relative"></div>
+                    </button>
+                </form>
+
                 <div class="mt-8 text-center border-t border-slate-700/50 pt-6">
                     <p class="text-sm text-slate-400">
                         Already have an account?
@@ -380,18 +402,68 @@
                     }
 
                     const responseText = await response.text();
-                    showAlert('success', responseText + ' Redirecting to login...');
+                    showAlert('success', 'Registration Authorized. Awaiting Email Verification.');
 
-                    // Redirect to login after successful registration
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
+                    // Hide Register, Show OTP
+                    document.getElementById('registerForm').classList.add('hidden');
+                    document.getElementById('otpForm').classList.remove('hidden');
+                    
+                    // Temporarily store email for OTP verification
+                    window.pendingRegistrationEmail = email;
 
                 } catch (err) {
                     showAlert('error', err.message || 'Connection failed. Ensure API Gateway is running on :8085');
                     // Reset Loading state
                     btn.disabled = false;
                     btnText.textContent = 'Sign Up';
+                    btnLoader.classList.add('hidden');
+                    btnIcon.classList.remove('hidden');
+                    btn.classList.remove('opacity-80', 'cursor-not-allowed');
+                }
+            }
+
+            // Handle OTP Verification
+            async function handleOtpVerify() {
+                const otpCode = document.getElementById('otpCode').value.trim();
+                const btnText = document.getElementById('verifyBtnText');
+                const btnLoader = document.getElementById('verifyBtnLoader');
+                const btnIcon = document.getElementById('verifyBtnIcon');
+                const btn = document.getElementById('verifyBtn');
+
+                if (!otpCode || otpCode.length !== 6) return;
+
+                hideAlert();
+                btn.disabled = true;
+                btnText.textContent = 'Verifying...';
+                btnLoader.classList.remove('hidden');
+                btnIcon.classList.add('hidden');
+                btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+                try {
+                    const response = await fetch(`\${API_GATEWAY_URL}/auth/verify-registration`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            email: window.pendingRegistrationEmail, 
+                            otp: otpCode 
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        throw new Error(errText || 'Invalid OTP Code');
+                    }
+
+                    showAlert('success', 'Account Verified! Redirecting to login...');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+
+                } catch (err) {
+                    showAlert('error', err.message);
+                    btn.disabled = false;
+                    btnText.textContent = 'Verify Account';
                     btnLoader.classList.add('hidden');
                     btnIcon.classList.remove('hidden');
                     btn.classList.remove('opacity-80', 'cursor-not-allowed');

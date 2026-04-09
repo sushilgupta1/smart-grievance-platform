@@ -374,6 +374,13 @@
             </div>
         </div>
 
+        <!-- Fullscreen Image Lightbox -->
+        <div id="imageLightbox" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/95 backdrop-blur-lg" onclick="closeLightbox()"></div>
+            <button onclick="closeLightbox()" class="absolute top-6 right-8 text-white/50 hover:text-white text-4xl transition z-10"><i class="fa-solid fa-xmark"></i></button>
+            <img id="lightboxImg" src="" class="max-w-full max-h-[90vh] object-contain relative z-10 rounded-lg shadow-2xl border border-slate-700/50 animate-fade-in" />
+        </div>
+
         <!-- Application Logic -->
         <script>
             const API_GATEWAY_URL = 'http://localhost:8085';
@@ -805,7 +812,7 @@
                 const photoHtml = g.attachmentUrl ? `
                     <div class="mb-4">
                         <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest text-center">Citizen Uploaded Proof</label>
-                        <div class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner" style="background-image: url('\${g.attachmentUrl}')"></div>
+                        <div onclick="openLightbox('\${g.attachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner cursor-pointer hover:opacity-80 transition" style="background-image: url('\${g.attachmentUrl}')" title="Click to expand"></div>
                     </div>` : `<div class="mb-4 text-xs font-semibold text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 border-dashed text-center"><i class="fa-solid fa-image-slash mb-1 text-lg"></i><br/>No Photo Attached</div>`;
 
                 // If user is Admin or Officer, they get the Action tools at the bottom!
@@ -894,17 +901,23 @@
 
                         \${g.publicPostDescription ? `<div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-reply-all mt-0.5 mr-2 text-emerald-400"></i><div><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-0.5">Official Public Feed Statement</span>\${escapeHtml(g.publicPostDescription)}</div></div>` : ''}
                         
-                        \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10" style="background-image: url('\${g.resolvedAttachmentUrl}')"></div></div>` : ''}
+                        \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div onclick="openLightbox('\${g.resolvedAttachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10 cursor-pointer hover:opacity-80 transition" style="background-image: url('\${g.resolvedAttachmentUrl}')" title="Click to expand"></div></div>` : ''}
 
                         \${((isAdmin || isOfficer) && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
                     </div>
                     
-                    \${(userEmail === g.userEmail && g.status === 'RESOLVED') ? `
-                    <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-end">
-                        <button onclick="reopenTicket(\${g.id})" class="text-xs bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 px-4 py-2 rounded-lg font-bold transition flex items-center shadow-lg shadow-fuchsia-500/10">
-                            <i class="fa-solid fa-triangle-exclamation mr-2"></i> Not Satisfied? Dispute & Re-Open Ticket
-                        </button>
-                    </div>` : ''}
+                    \${(userEmail === g.userEmail && g.status === 'RESOLVED') ? 
+                        (g.reopenCount >= 1 ? `
+                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-end">
+                            <div class="text-xs bg-slate-800/80 text-slate-500 border border-slate-700 px-4 py-2 rounded-lg font-bold flex items-center shadow-inner cursor-not-allowed">
+                                <i class="fa-solid fa-lock mr-2"></i> Dispute Limit Exhausted
+                            </div>
+                        </div>` : `
+                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-end">
+                            <button onclick="reopenTicket(\${g.id})" class="text-xs bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30 px-4 py-2 rounded-lg font-bold transition flex items-center shadow-lg shadow-fuchsia-500/10">
+                                <i class="fa-solid fa-triangle-exclamation mr-2"></i> Not Satisfied? Dispute & Re-Open Ticket
+                            </button>
+                        </div>`) : ''}
 
                     \${actionControlsHtml}
                 </div>`;
@@ -1026,6 +1039,18 @@
                     btn.innerHTML = 'Open Dispute';
                 }
             });
+
+            /* ================= LIGHTBOX IMAGE ENGINE ================= */
+            function openLightbox(base64str) {
+                if(!base64str) return;
+                document.getElementById('lightboxImg').src = base64str;
+                document.getElementById('imageLightbox').classList.remove('hidden');
+            }
+
+            function closeLightbox() {
+                document.getElementById('imageLightbox').classList.add('hidden');
+                setTimeout(() => { document.getElementById('lightboxImg').src = ''; }, 300);
+            }
 
             /* ================= MAYOR ANALYTICS ENGINE (CHART.JS) ================= */
             let chartStatus = null;

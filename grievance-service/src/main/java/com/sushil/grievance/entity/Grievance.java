@@ -71,4 +71,7 @@ public class Grievance {
 	
 	@Column(length = 2000)
 	private String citizenMessage;
+	
+	@Column(name = "reopen_count", columnDefinition = "integer default 0", nullable = false)
+	private int reopenCount;
 }

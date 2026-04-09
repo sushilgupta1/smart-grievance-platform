@@ -38,4 +38,10 @@ public class User {
 
 	@Column(length = 50)
 	private String department;
+	
+	@Column(name = "is_verified")
+	private boolean isVerified;
+	
+	@Column(name = "otp")
+	private String otp;
 }

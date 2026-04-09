@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.sushil.auth.dto.LoginRequest;
 import com.sushil.auth.dto.PromoteRequest;
 import com.sushil.auth.dto.RegisterRequest;
+import com.sushil.auth.dto.UpdateProfileRequest;
+import com.sushil.auth.dto.UserProfileDto;
 import com.sushil.auth.dto.VerifyOtpRequest;
 import com.sushil.auth.entity.User;
 import com.sushil.auth.kafka.KafkaProducerService;
@@ -138,7 +140,7 @@ public class AuthService {
 		
 		if(user.getOtp()!=null && user.getOtp().equals(request.getOtp()))
 		{
-			user.setPassword(newPassword);
+			user.setPassword(passwordEncoder.encode(newPassword)); 
 			user.setOtp(null);
 			userRepository.save(user);
 			
@@ -166,6 +168,36 @@ public class AuthService {
 		
 		return "User "+user.getEmail()+" successfully promoted to "+ user.getRole();
 	
+	}
+	
+	public String updateProfile(String authenticatedEmail, UpdateProfileRequest request)
+	{
+		User user = userRepository.findByEmail(authenticatedEmail).orElseThrow(()->new RuntimeException("User not found"));
+		
+		user.setMobileNumber(request.getMobileNumber());
+		userRepository.save(user);
+		
+		 // Notify Grievance-Service that the mobile number is updated so that in grievance table number must also be updated via kafka
+        String kafkaPayload = String.format("{\"email\": \"%s\", \"mobile\": \"%s\"}", user.getEmail(), user.getMobileNumber());
+        kafkaProducerService.sendMessage(kafkaPayload);
+        
+        return "Profile update successfully";
+		
+	}
+	
+	public UserProfileDto getProfile(String email)
+	{
+		User user = userRepository.findByEmail(email).orElseThrow(()->new RuntimeException("User not found..."));
+		
+		UserProfileDto dto =new UserProfileDto();
+		dto.setEmail(user.getEmail());
+		dto.setUsername(user.getUsername());
+		dto.setRole(user.getRole());
+		dto.setMobileNumber(user.getMobileNumber());
+		dto.setDepartment(user.getDepartment());
+		dto.setVerified(user.isVerified());
+		
+		return dto;
 	}
 
 }

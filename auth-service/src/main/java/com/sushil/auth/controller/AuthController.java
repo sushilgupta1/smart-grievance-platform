@@ -12,13 +12,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sushil.auth.dto.ForgotPasswordRequest;
 import com.sushil.auth.dto.LoginRequest;
 import com.sushil.auth.dto.PromoteRequest;
 import com.sushil.auth.dto.RegisterRequest;
+import com.sushil.auth.dto.ResetPasswordRequest;
+import com.sushil.auth.dto.UpdateProfileRequest;
 import com.sushil.auth.dto.VerifyOtpRequest;
 import com.sushil.auth.service.AuthService;
 
 import jakarta.validation.Valid;
+import lombok.val;
 
 @RestController
 @RequestMapping("/auth")
@@ -75,23 +79,46 @@ public class AuthController {
 	}
 	
 	@PostMapping("/forgot-password")
-	public ResponseEntity<?> forgotPassword(@RequestBody Map<String,String> request)
+	public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request)
 	{
 		try {
-			return ResponseEntity.ok(authService.requestPasswordReset(request.get("email")));
+			return ResponseEntity.ok(authService.requestPasswordReset(request.getEmail()));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(400).body(e.getMessage());
 		}
 	}
 	
 	@PostMapping("/reset-password")
-	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request)
+	public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request)
 	{
 		try {
 			VerifyOtpRequest dto =new VerifyOtpRequest();
-			dto.setEmail(request.get("email"));
-			dto.setOtp(request.get("token"));
-			return ResponseEntity.ok(authService.resetPassword(dto, request.get("newPassword")));
+			dto.setEmail(request.getEmail());
+			dto.setOtp(request.getToken());
+			return ResponseEntity.ok(authService.resetPassword(dto, request.getNewPassword()));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(400).body(e.getMessage());
+		
+		}
+	}
+	
+	@PostMapping("/update")
+	public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request)
+	{
+		try {
+			String email=SecurityContextHolder.getContext().getAuthentication().getName();
+			return ResponseEntity.ok(authService.updateProfile(email, request));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(400).body(e.getMessage());
+		}
+	}
+	
+	@GetMapping("/me")
+	public ResponseEntity<?> getProfile()
+	{
+		try {
+			String email=SecurityContextHolder.getContext().getAuthentication().getName();
+			return ResponseEntity.ok(authService.getProfile(email));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(400).body(e.getMessage());
 		

@@ -374,6 +374,27 @@
             </div>
         </div>
 
+        <!-- Profile Update Modal -->
+        <div id="profileEditModal" class="fixed inset-0 z-[70] hidden">
+            <div class="absolute inset-0 bg-dark-900/90 backdrop-blur-md" onclick="closeProfileEditModal()"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-sm">
+                <div class="glass-panel p-6 rounded-2xl shadow-2xl border border-indigo-500/30 animate-fade-in relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+                    <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-mobile-screen text-indigo-400 mr-2"></i> Update Mobile Number</h3>
+                    <p class="text-xs text-slate-400 mb-4">Your mobile number is used to receive critical SMS alerts and OTPs constraints.</p>
+                    
+                    <form onsubmit="event.preventDefault(); updateProfilePhone();">
+                        <input type="text" id="editMobileNumber" required pattern="[0-9]{10,15}" class="input-field w-full px-4 py-3 rounded-xl text-sm border-indigo-500/20 focus:border-indigo-500 mb-4" placeholder="Enter new mobile number">
+                        
+                        <div class="flex justify-end gap-3">
+                            <button type="button" onclick="closeProfileEditModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancel</button>
+                            <button type="submit" id="secBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-5 py-2 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition">Confirm Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Fullscreen Image Lightbox -->
         <div id="imageLightbox" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/95 backdrop-blur-lg" onclick="closeLightbox()"></div>
@@ -445,8 +466,10 @@
 
             // Render Sidebar
             const nav = document.getElementById('sidebarNav');
+            let navHtml = '';
+
             if (isAdmin) {
-                nav.innerHTML = `
+                navHtml += `
                 <a href="#" onclick="loadAdminView()" class="flex items-center px-4 py-3 bg-blue-500/10 text-blue-400 rounded-xl font-medium transition border border-blue-500/20">
                     <i class="fa-solid fa-layer-group w-5"></i> All Grievances
                 </a>
@@ -455,21 +478,34 @@
                 </a>
             `;
             } else if (isOfficer) {
-                nav.innerHTML = `
+                navHtml += `
                 <a href="#" onclick="loadOfficerView()" class="flex items-center px-4 py-3 bg-indigo-500/10 text-indigo-400 rounded-xl font-medium transition border border-indigo-500/20">
                     <i class="fa-solid fa-briefcase w-5"></i> My Assignments
                 </a>
             `;
             } else {
-                nav.innerHTML = `
+                navHtml += `
                 <a href="#" onclick="loadUserView()" class="flex items-center px-4 py-3 bg-blue-500/10 text-blue-400 rounded-xl font-medium transition border border-blue-500/20">
                     <i class="fa-solid fa-clock-rotate-left w-5"></i> My Grievances
                 </a>
                 <a href="#" onclick="showNewGrievanceForm()" class="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition cursor-pointer mt-1">
                     <i class="fa-solid fa-plus w-5"></i> File Grievance
                 </a>
+                <a href="#" onclick="showSupportHub()" class="flex items-center px-4 py-3 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-xl font-medium transition cursor-pointer mt-1 group">
+                    <i class="fa-solid fa-headset w-5 group-hover:animate-pulse"></i> Live Helpdesk
+                </a>
             `;
             }
+
+            // Universal Settings for all Roles
+            navHtml += `
+                <div class="my-4 border-t border-slate-700/50"></div>
+                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-4 mb-2">Settings</h4>
+                <a href="#" onclick="showProfileView()" class="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl font-medium transition cursor-pointer">
+                    <i class="fa-solid fa-user-circle w-5 text-indigo-400"></i> My Profile
+                </a>
+            `;
+            nav.innerHTML = navHtml;
 
 
             /* ================= ALERT SYSTEM ================= */
@@ -634,6 +670,185 @@
                     btn.disabled = false;
                     btn.innerHTML = 'Submit Grievance';
                 }
+            }
+
+            /* ================= MY PROFILE & SUPPORT HUB (PHASE 8) ================= */
+
+            let currentProfileData = null;
+
+            async function showProfileView() {
+                hideAlert();
+                document.getElementById('filterConsole').classList.add('hidden');
+                document.getElementById('analyticsBoard').classList.add('hidden');
+                document.getElementById('pageTitle').textContent = 'My Profile';
+                document.getElementById('pageSubtitle').textContent = 'View your identity status and personal information parameters.';
+                document.getElementById('headerActions').innerHTML = '';
+
+                renderLoader();
+
+                try {
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/auth/me`);
+                    if (!res.ok) throw new Error("Could not fetch profile details.");
+                    currentProfileData = await res.json();
+                    
+                    const roleBadgeColor = currentProfileData.role.includes("ADMIN") ? "bg-red-500/20 text-red-400 border-red-500/30" : 
+                                           currentProfileData.role.includes("OFFICER") ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : 
+                                           "bg-blue-500/20 text-blue-400 border-blue-500/30";
+
+                    const html = `
+                    <div class="glass-panel rounded-3xl max-w-4xl animate-fade-in shadow-xl mx-auto overflow-hidden border border-slate-700/50">
+                        <!-- Profile Header Banner -->
+                        <div class="h-32 bg-gradient-to-r from-indigo-900 to-slate-900 border-b border-indigo-500/20 relative">
+                           <div class="absolute -bottom-12 left-8">
+                                <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-4xl font-bold shadow-xl border-4 border-slate-900 text-white">
+                                    \${currentProfileData.username.charAt(0).toUpperCase()}
+                                </div>
+                           </div>
+                        </div>
+                        
+                        <!-- Profile Body -->
+                        <div class="pt-16 pb-8 px-8 flex flex-col md:flex-row justify-between items-start gap-8">
+                            <div class="flex-1">
+                                <h2 class="text-3xl font-extrabold text-white tracking-tight mb-1">\${escapeHtml(currentProfileData.username)}</h2>
+                                <div class="flex flex-wrap gap-2 mb-6">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded inline-flex items-center border \${roleBadgeColor}">
+                                        <i class="fa-solid fa-id-badge mr-1.5"></i>\${currentProfileData.role}
+                                    </span>
+                                    \${currentProfileData.department ? 
+                                      `<span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded inline-flex items-center border bg-slate-800 text-slate-300 border-slate-700">
+                                         <i class="fa-solid fa-briefcase mr-1.5"></i>\${escapeHtml(currentProfileData.department)}
+                                       </span>` : ''}
+                                    \${currentProfileData.verified ? 
+                                      `<span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded inline-flex items-center border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                         <i class="fa-solid fa-certificate mr-1.5"></i>Verified User
+                                       </span>` : ''}
+                                </div>
+
+                                <div class="space-y-4 max-w-md">
+                                    <div class="glass-panel p-4 rounded-xl border border-slate-700/50 flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 mr-4">
+                                            <i class="fa-solid fa-envelope"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Email Address</p>
+                                            <p class="text-white font-medium text-sm mt-0.5">\${currentProfileData.email}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="glass-panel p-4 rounded-xl border border-slate-700/50 flex justify-between items-center group">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 mr-4">
+                                                <i class="fa-solid fa-mobile-screen"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mobile Number</p>
+                                                <p class="text-white font-medium text-sm mt-0.5">\${currentProfileData.mobileNumber || '<span class="text-slate-500 italic">Not Provided</span>'}</p>
+                                            </div>
+                                        </div>
+                                        <button onclick="openProfileEditModal()" class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition flex items-center justify-center border border-indigo-500/20">
+                                            <i class="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full md:w-64 glass-panel p-6 rounded-2xl border border-indigo-500/20 relative overflow-hidden hidden md:block">
+                                <div class="absolute -right-6 -bottom-6 text-indigo-500/10 text-9xl"><i class="fa-solid fa-shield-check"></i></div>
+                                <h4 class="text-sm font-bold text-white mb-2">Security Status</h4>
+                                <p class="text-xs text-slate-400 mb-4">Your account is fully secured and verified via one-time-password matrix protocols.</p>
+                                <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                     <div class="h-full bg-emerald-500 w-full shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+                                </div>
+                                <p class="text-[10px] font-bold text-emerald-400 mt-2 text-right relative z-10">100% Secured</p>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                    document.getElementById('workspaceContent').innerHTML = html;
+
+                } catch (err) {
+                    showAlert('error', err.message);
+                    document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load profile parameters.</div>';
+                }
+            }
+
+            function openProfileEditModal() {
+                if(!currentProfileData) return;
+                const input = document.getElementById('editMobileNumber');
+                input.value = currentProfileData.mobileNumber || '';
+                document.getElementById('profileEditModal').classList.remove('hidden');
+            }
+
+            function closeProfileEditModal() {
+                document.getElementById('profileEditModal').classList.add('hidden');
+            }
+
+            async function updateProfilePhone() {
+                const phone = document.getElementById('editMobileNumber').value.trim();
+                const btn = document.getElementById('secBtn');
+                
+                if(!phone) return;
+                
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Saving...';
+
+                try {
+                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/auth/update`, {
+                        method: 'POST',
+                        body: JSON.stringify({ mobileNumber: phone })
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.text();
+                        throw new Error(err || "Failed to update profile");
+                    }
+
+                    showAlert('success', 'Mobile Number updated successfully!');
+                    closeProfileEditModal();
+                    // Refresh profile view
+                    setTimeout(() => showProfileView(), 500);
+                } catch (err) {
+                    showAlert('error', err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Confirm Update';
+                }
+            }
+
+            function showSupportHub() {
+                hideAlert();
+                document.getElementById('filterConsole').classList.add('hidden');
+                document.getElementById('analyticsBoard').classList.add('hidden');
+                document.getElementById('pageTitle').textContent = 'Live Municipality Helpdesk';
+                document.getElementById('pageSubtitle').textContent = '24/7 dedicated support for emergency grid failures and system issues.';
+                document.getElementById('headerActions').innerHTML = '';
+
+                const html = `
+                <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                    
+                    <!-- Contact Card 1 -->
+                    <div class="glass-panel p-8 rounded-3xl border-t-2 border-emerald-500/50 shadow-2xl relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 text-emerald-500/10 text-9xl group-hover:scale-110 transition duration-500"><i class="fa-solid fa-phone-volume"></i></div>
+                        <span class="bg-emerald-500/20 text-emerald-400 items-center justify-center flex w-12 h-12 rounded-2xl mb-6 shadow-lg shadow-emerald-500/20 text-2xl font-black">1</span>
+                        <h3 class="text-2xl font-extrabold text-white mb-2">Emergency Hotline</h3>
+                        <p class="text-slate-400 text-sm mb-6 leading-relaxed">For immediate life-threatening structural failures or high-voltage electricity grid issues.</p>
+                        <div class="text-3xl font-black text-emerald-400 tracking-wider">1800-CITY-HELP</div>
+                        <p class="text-[10px] text-slate-500 mt-2 uppercase font-bold tracking-widest">Available 24/7/365</p>
+                    </div>
+
+                    <!-- Contact Card 2 -->
+                    <div class="glass-panel p-8 rounded-3xl border-t-2 border-blue-500/50 shadow-2xl relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 text-blue-500/10 text-9xl group-hover:-rotate-12 transition duration-500"><i class="fa-solid fa-envelope-open-text"></i></div>
+                        <span class="bg-blue-500/20 text-blue-400 items-center justify-center flex w-12 h-12 rounded-2xl mb-6 shadow-lg shadow-blue-500/20 text-2xl font-black">2</span>
+                        <h3 class="text-2xl font-extrabold text-white mb-2">Escalation Desk</h3>
+                        <p class="text-slate-400 text-sm mb-6 leading-relaxed">If your priority level 8+ grievance has surpassed the SLA threshold without resolution.</p>
+                        <div class="text-xl font-bold text-blue-400 mb-1">mayor.office@smartcity.gov</div>
+                        <div class="text-sm font-bold text-slate-300">Response SLA: 4 Hours</div>
+                    </div>
+                    
+                </div>
+                `;
+                document.getElementById('workspaceContent').innerHTML = html;
             }
 
 

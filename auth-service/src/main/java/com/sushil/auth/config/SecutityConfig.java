@@ -32,7 +32,12 @@ public class SecutityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http)throws Exception
 	{
 		http.csrf(csrf->csrf.disable())
-		.authorizeHttpRequests(auth->auth.requestMatchers("/auth/login","/auth/register")
+		.authorizeHttpRequests(auth->auth.requestMatchers(
+				"/auth/login",
+				"/auth/register",
+				"/auth/verify-registration",
+				"/auth/forgot-password",
+				"/auth/reset-password")
 				.permitAll().anyRequest().authenticated())
 		.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 		

@@ -7,10 +7,12 @@ import java.util.List;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.discovery.converters.Auto;
 import com.sushil.grievance.dto.GrievanceRequest;
 import com.sushil.grievance.dto.ResolveRequest;
 import com.sushil.grievance.entity.CitizenReference;
@@ -35,7 +37,10 @@ public class GrievanceService {
 	@Autowired
 	private GeminiAiService geminiAiService;
 	
-	public Grievance createGrievance(GrievanceRequest request, String email)
+	@Autowired
+	private FileStorageService fileStorageService;
+	
+	public Grievance createGrievance(GrievanceRequest request, String email, MultipartFile file)
 	{
 		Grievance grievance=new Grievance();
 		grievance.setTitle(request.getTitle());
@@ -55,6 +60,16 @@ public class GrievanceService {
 		grievance.setStatus("OPEN");
 		grievance.setCreatedAt(LocalDateTime.now());
 		grievance.setResolutionDeadline(LocalDateTime.now().plusDays(7));
+		
+		if(file!=null && !file.isEmpty())
+		{
+			String fileName=fileStorageService.storeFile(file);
+			grievance.setAttachmentUrl("/grievance/uploads/"+fileName);
+		}
+		else
+		{
+			grievance.setAttachmentUrl(null);
+		}
 		
 		try {
 			String aiResponse = geminiAiService.analyzeGrievance(request.getDescription());
@@ -164,7 +179,7 @@ public class GrievanceService {
 	}
 	
 	
-	public Grievance updateResolution(Long id, ResolveRequest request) {
+	public Grievance updateResolution(Long id, ResolveRequest request, MultipartFile file ) {
 		Grievance g = repository.findById(id).orElseThrow();
 		
 		g.setStatus(request.getStatus());
@@ -173,6 +188,17 @@ public class GrievanceService {
 		g.setPublicPostDescription(request.getPublicPostDescription());
 		g.setResolvedAttachmentUrl(request.getResolveAttachmentUrl());
 		g.setCitizenMessage(request.getCitizenMessage());
+		
+		if(file!=null && !file.isEmpty())
+		{
+			String fileName=fileStorageService.storeFile(file);
+			g.setResolvedAttachmentUrl("/grievance/uploads/" + fileName);
+		}
+		else
+		{
+			g.setAttachmentUrl(null);
+		}
+		
 		Grievance saved = repository.save(g);
 		
 		if("RESOLVED".equalsIgnoreCase(request.getStatus()))

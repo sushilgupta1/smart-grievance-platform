@@ -405,7 +405,7 @@
         <!-- Application Logic -->
         <script>
             const API_GATEWAY_URL = 'http://localhost:8085';
-            let currentBase64Image = "";
+            let currentSelectedFile = null;
 
             // Initialize UI based on role
             let displayRole = 'User';
@@ -444,18 +444,14 @@
                     if (file.size > 2 * 1024 * 1024) { 
                         showAlert('error', 'Image is too large. Please select an image under 2MB.');
                         event.target.value = ""; // Clear the input
-                        currentBase64Image = "";
+                        currentSelectedFile = null;
                         return;
                     }
 
-                    const reader = new FileReader();
-                    reader.onloadend = function() {
-                        currentBase64Image = reader.result; // This converts the image to the giant text string!
-                        showAlert('success', 'Image attached and encoded successfully!');
-                    };
-                    reader.readAsDataURL(file);
+                    currentSelectedFile = file;
+                    showAlert('success', 'Image attached securely!');
                 } else {
-                    currentBase64Image = "";
+                    currentSelectedFile = null;
                 }
             }
 
@@ -650,15 +646,23 @@
                 btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Submitting...';
 
                 try {
-                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance`, {
+                    const grievancePayload = { 
+                        title: title, 
+                        description: description, 
+                        status: "OPEN",
+                        locationCoordinates: locationCoordinates
+                    };
+                    
+                    const formData = new FormData();
+                    formData.append('grievance', new Blob([JSON.stringify(grievancePayload)], { type: 'application/json' }));
+                    
+                    if (currentSelectedFile) {
+                        formData.append('file', currentSelectedFile);
+                    }
+
+                    const res = await fetchWithAuth(API_GATEWAY_URL + '/grievance', {
                         method: 'POST',
-                        body: JSON.stringify({ 
-                            title: title, 
-                            description: description, 
-                            status: "OPEN",
-                            locationCoordinates: locationCoordinates,
-                            attachmentUrl: currentBase64Image
-                        })
+                        body: formData
                     });
 
                     if (!res.ok) throw new Error("Failed to submit.");
@@ -1014,7 +1018,7 @@
             // 🚨 NEW UNIFIED MASTER MODAL
             function openDetailsModal(grievanceJson) {
                 const g = typeof grievanceJson === 'string' ? JSON.parse(grievanceJson) : grievanceJson;
-                currentBase64Image = "";
+                currentSelectedFile = null;
 
                 document.getElementById('modalTitle').innerHTML = `
                     <div class="flex items-center gap-3">
@@ -1027,7 +1031,7 @@
                 const photoHtml = g.attachmentUrl ? `
                     <div class="mb-4">
                         <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest text-center">Citizen Uploaded Proof</label>
-                        <div onclick="openLightbox('\${g.attachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner cursor-pointer hover:opacity-80 transition" style="background-image: url('\${g.attachmentUrl}')" title="Click to expand"></div>
+                        <div onclick="openLightbox('\${API_GATEWAY_URL}\${g.attachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-slate-700 shadow-inner cursor-pointer hover:opacity-80 transition" style="background-image: url('\${API_GATEWAY_URL}\${g.attachmentUrl}')" title="Click to expand"></div>
                     </div>` : `<div class="mb-4 text-xs font-semibold text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700 border-dashed text-center"><i class="fa-solid fa-image-slash mb-1 text-lg"></i><br/>No Photo Attached</div>`;
 
                 // If user is Admin or Officer, they get the Action tools at the bottom!
@@ -1116,7 +1120,7 @@
 
                         \${g.publicPostDescription ? `<div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-reply-all mt-0.5 mr-2 text-emerald-400"></i><div><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block mb-0.5">Official Public Feed Statement</span>\${escapeHtml(g.publicPostDescription)}</div></div>` : ''}
                         
-                        \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div onclick="openLightbox('\${g.resolvedAttachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10 cursor-pointer hover:opacity-80 transition" style="background-image: url('\${g.resolvedAttachmentUrl}')" title="Click to expand"></div></div>` : ''}
+                        \${g.resolvedAttachmentUrl ? `<div class="mt-3"><label class="block text-[10px] font-bold text-emerald-400 mb-1 uppercase tracking-widest text-center"><i class="fa-solid fa-camera-retro mr-1"></i> Official Rectified Proof</label><div onclick="openLightbox('\${API_GATEWAY_URL}\${g.resolvedAttachmentUrl}')" class="h-48 w-full rounded-xl bg-cover bg-center border border-emerald-500/30 shadow-lg shadow-emerald-500/10 cursor-pointer hover:opacity-80 transition" style="background-image: url('\${API_GATEWAY_URL}\${g.resolvedAttachmentUrl}')" title="Click to expand"></div></div>` : ''}
 
                         \${((isAdmin || isOfficer) && g.remarks) ? `<div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 p-3 rounded-xl flex items-start text-xs mt-3"><i class="fa-solid fa-lock mt-0.5 mr-2 text-indigo-400"></i><div><span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Internal Remarks</span>\${escapeHtml(g.remarks)}</div></div>` : ''}
                     </div>
@@ -1154,13 +1158,19 @@
                         status: status,
                         remarks: remarks,
                         citizenMessage: citizenMsg,
-                        publicPostDescription: publicTweet,
-                        resolveAttachmentUrl: currentBase64Image
+                        publicPostDescription: publicTweet
                     };
+                    
+                    const formData = new FormData();
+                    formData.append('resolution', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+                    
+                    if (currentSelectedFile) {
+                        formData.append('file', currentSelectedFile);
+                    }
 
-                    const res = await fetchWithAuth(`\${API_GATEWAY_URL}/grievance/\${id}/status`, {
+                    const res = await fetchWithAuth(API_GATEWAY_URL + '/grievance/' + id + '/status', {
                         method: 'PUT',
-                        body: JSON.stringify(payload)
+                        body: formData
                     });
                     
                     if (!res.ok) throw new Error("Failed to update status");

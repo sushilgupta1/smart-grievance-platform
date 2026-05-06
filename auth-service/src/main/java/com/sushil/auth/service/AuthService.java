@@ -68,6 +68,8 @@ public class AuthService {
 		user.setRole("USER");
 		user.setMobileNumber(request.getMobileNumber());
 		
+		
+		
 		String generatedOtp = String.format("%06d", new Random().nextInt(999999));
 		user.setVerified(false);
 		user.setOtp(generatedOtp);

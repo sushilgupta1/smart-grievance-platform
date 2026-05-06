@@ -642,11 +642,11 @@
               recent.forEach(g => {
                   // If no pictures exist, we inject beautiful placeholder backgrounds!
                   const beforeImg = g.attachmentUrl ? 
-                      `<div class="h-64 w-full bg-cover bg-center" style="background-image: url('\${g.attachmentUrl}')"></div>` : 
+                      `<div class="h-64 w-full bg-cover bg-center" style="background-image: url('\${API_GATEWAY_URL}\${g.attachmentUrl}')"></div>` : 
                       `<div class="h-64 w-full bg-slate-800 flex items-center justify-center border-r border-slate-700/50"><i class="fa-solid fa-camera-slash text-5xl text-slate-700"></i></div>`;
                       
                   const afterImg = g.resolvedAttachmentUrl ? 
-                      `<div class="h-64 w-full bg-cover bg-center" style="background-image: url('\${g.resolvedAttachmentUrl}')"></div>` : 
+                      `<div class="h-64 w-full bg-cover bg-center" style="background-image: url('\${API_GATEWAY_URL}\${g.resolvedAttachmentUrl}')"></div>` : 
                       `<div class="h-64 w-full bg-emerald-900/40 flex items-center justify-center flex-col text-emerald-500/50 relative overflow-hidden"><i class="fa-solid fa-check-double text-5xl mb-3"></i><span class="font-bold tracking-widest uppercase text-xs">Work Confirmed</span><div class="absolute inset-0 bg-emerald-500/10 blur-3xl"></div></div>`;
                   
                   // Construct the Officer's Tweet box (only renders if they typed a publicPR description)

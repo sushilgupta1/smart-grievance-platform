@@ -2,8 +2,8 @@ package com.sushil.grievance.controller;
 
 import java.util.List;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.sushil.grievance.dto.GrievanceRequest;
 import com.sushil.grievance.dto.ResolveRequest;
@@ -30,10 +32,11 @@ public class GrievanceController {
 	@Autowired
 	private GrievanceService service;
 
-	@PostMapping
-	public Grievance create(@Valid @RequestBody GrievanceRequest request) {
+	@PostMapping(consumes = { "multipart/form-data" })
+	public Grievance create(@Valid @RequestPart("grievance") GrievanceRequest request,
+			@RequestPart(value = "file", required = false) MultipartFile file) {
 		String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-		return service.createGrievance(request, email);
+		return service.createGrievance(request, email, file);
 	}
 
 	@PutMapping("/assign/{id}")
@@ -85,32 +88,30 @@ public class GrievanceController {
 	public List<Grievance> getPublicFeed() {
 		return service.getByStatus("RESOLVED");
 	}
-	
-	@PutMapping("/{id}/status")
+
+	@PutMapping(value = "/{id}/status", consumes = { "multipart/form-data" })
 	@PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
-	public Grievance updateStatus(@PathVariable Long id, @RequestBody ResolveRequest request) {
-		return service.updateResolution(id, request);
+	public Grievance updateStatus(@PathVariable Long id, @RequestPart("resolution") ResolveRequest request,
+			@RequestPart(value = "file", required = false) MultipartFile file) {
+		return service.updateResolution(id, request, file);
 	}
-	
+
 	@GetMapping("/assigned")
-	public ResponseEntity<List<Grievance>> getAssignedGrievance()
-	{
+	public ResponseEntity<List<Grievance>> getAssignedGrievance() {
 		String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 		return ResponseEntity.ok(service.getAssignedGrievance(adminEmail));
 	}
-	
+
 	@PutMapping("/{id}/reassign")
 	@PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
-	public Grievance reassign(@PathVariable Long id, @RequestParam String reason)
-	{
+	public Grievance reassign(@PathVariable Long id, @RequestParam String reason) {
 		return service.requestReassigment(id, reason);
 	}
-	
+
 	@PutMapping("/{id}/reopen")
-	public Grievance reopenTicket(@PathVariable Long id, @RequestParam(required = false) String reason)
-	{
+	public Grievance reopenTicket(@PathVariable Long id, @RequestParam(required = false) String reason) {
 		String citizenEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 		return service.reopenGrievance(id, reason, citizenEmail);
-		
+
 	}
 }

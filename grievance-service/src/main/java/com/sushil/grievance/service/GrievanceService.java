@@ -2,7 +2,10 @@ package com.sushil.grievance.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import com.sushil.grievance.dto.ResolveRequest;
 import com.sushil.grievance.entity.CitizenReference;
 import com.sushil.grievance.entity.Grievance;
 import com.sushil.grievance.exception.ResourceNotFoundException;
+import com.sushil.grievance.feign.ClassificationClient;
 import com.sushil.grievance.kafka.KafkaProducerService;
 import com.sushil.grievance.repository.CitizenReferenceRepository;
 import com.sushil.grievance.repository.GrievanceRepository;
@@ -35,7 +39,7 @@ public class GrievanceService {
 	private KafkaProducerService kafkaProducerService;
 	
 	@Autowired
-	private GeminiAiService geminiAiService;
+	private ClassificationClient classificationClient;
 	
 	@Autowired
 	private FileStorageService fileStorageService;
@@ -72,56 +76,35 @@ public class GrievanceService {
 		}
 		
 		try {
-			String aiResponse = geminiAiService.analyzeGrievance(request.getDescription());
 			
-			int startIndex = aiResponse.indexOf("{");
-			int endIndex = aiResponse.lastIndexOf("}");
-			if (startIndex != -1 && endIndex != -1) {
-			    aiResponse = aiResponse.substring(startIndex, endIndex + 1);
+			Map<String, String> requestPayload= new HashMap<>();
+			requestPayload.put("description", request.getDescription());
+			
+			Map<String, Object> aiResponse= classificationClient.classifyGrievance(requestPayload);
+			grievance.setCategory((String) aiResponse.getOrDefault("category", "Other"));
+			
+			Object scoreObj=aiResponse.get("priorityScore");
+			int score=1;
+			if(scoreObj instanceof Integer)
+			{
+				score=(Integer) scoreObj;
+			} else if(scoreObj instanceof String)
+			{
+				score=Integer.parseInt((String)scoreObj);
 			}
+			grievance.setPriorityScore(score);
 
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-			JsonNode aiJson = mapper.readTree(aiResponse);
-			
-			grievance.setCategory(aiJson.path("category").asText("Other"));
-			grievance.setPriorityScore(aiJson.path("priorityScore").asInt(1));
-			
 		} catch (Exception e) {
-			System.err.println("AI engine failed to process. Defaulting to safe values. Reason: " + e.getMessage());
-			e.printStackTrace();
+			System.err.println("Failed to reach CLASSIFICATION-SERVICE via Feign. Reason: " + e.getMessage());
 			grievance.setCategory("Unassigned");
 			grievance.setPriorityScore(1);
 		}
 		
-		try {
-			List<CitizenReference> availableOfficers = citizenRepo.findByRoleAndDepartment("OFFICER", grievance.getCategory());
-			if (availableOfficers != null && !availableOfficers.isEmpty()) {
-				String bestOfficerEmail = null;
-				long lowestWorkload = Long.MAX_VALUE;
-				
-				for (CitizenReference officer : availableOfficers) {
-					long currentLoad = repository.countActiveTicketsForOfficer(officer.getEmail());
-					if (currentLoad < lowestWorkload) {
-						lowestWorkload = currentLoad;
-						bestOfficerEmail = officer.getEmail();
-					}
-				}
-				
-				if (bestOfficerEmail != null) {
-					grievance.setAssignedTo(bestOfficerEmail);
-					System.out.println("Assigned ticket to least-loaded officer: " + bestOfficerEmail + " (Load: " + lowestWorkload + ")");
-				}
-			} else {
-			    System.out.println("No officers available for department: " + grievance.getCategory());
-			}
-		} catch(Exception e) {
-			System.err.println("Officer Routing Failed: " + e.getMessage());
-		}
+		
 		Grievance saved= repository.save(grievance);
 		
 		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+email);
-		
+		kafkaProducerService.sendClassifiedMessage(saved.getId() + ":" + saved.getCategory());
 		return saved;
 	}
 	
@@ -245,5 +228,28 @@ public class GrievanceService {
 		kafkaProducerService.sendMessage("URGENT: Grievance #"+id+" was RE-OPENED by the citizen!");
 		
 		return saved;
+	}
+	
+	public String findLeastLoadedOfficer(String department)
+	{
+		List<CitizenReference> availableOfficers= citizenRepo.findByRoleAndDepartment("OFFICER", department);
+		
+		if(availableOfficers==null || availableOfficers.isEmpty())
+			return null;
+		
+		String bestOfficerEmail=null;
+		long lowestWorkload=Long.MAX_VALUE;
+		
+		for(CitizenReference officer:availableOfficers)
+		{
+			long currentLoad= repository.countActiveTicketsForOfficer(officer.getEmail());
+			if(currentLoad<lowestWorkload)
+			{
+				lowestWorkload=currentLoad;
+				bestOfficerEmail=officer.getEmail();
+				
+			}
+		}
+		return bestOfficerEmail;
 	}
 }

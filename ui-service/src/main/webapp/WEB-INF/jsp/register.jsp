@@ -398,6 +398,15 @@
 
                     if (!response.ok) {
                         const errText = await response.text();
+                        if (errText.includes('Duplicate entry')) {
+                            if (errText.includes(mobileNumber)) {
+                                throw new Error('This mobile number is already registered.');
+                            } else if (errText.includes(email)) {
+                                throw new Error('This email address is already registered.');
+                            } else {
+                                throw new Error('A user with these details already exists.');
+                            }
+                        }
                         throw new Error(errText || 'Registration failed');
                     }
 

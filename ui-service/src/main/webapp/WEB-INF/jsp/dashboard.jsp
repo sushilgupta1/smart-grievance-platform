@@ -536,9 +536,11 @@
 
                 try {
                     const response = await fetch(url, { ...options, headers });
-                    if (response.status === 401 || response.status === 403) {
+                    if ((response.status === 401 || response.status === 403) && !url.includes('/auth/promote')) {
                         logout(); // Auto-kick on invalid token
                         throw new Error("Session expired. Please log in again.");
+                    } else if ((response.status === 401 || response.status === 403) && url.includes('/auth/promote')) {
+                        throw new Error("User not found or promotion denied.");
                     }
                     return response;
                 } catch (err) {
@@ -1429,7 +1431,7 @@
                         method: 'PUT',
                         body: JSON.stringify({ email: email, role: role, department: dept })
                     });
-                    if(!res.ok) throw new Error("Failed to promote user! Verify email is correct.");
+                    if(!res.ok) throw new Error("Failed to promote user! Incorrect email.");
                     showAlert('success', 'User successfully provisioned to ' + dept + ' ' + role);
                     setTimeout(() => loadAdminView(), 2000);
                 } catch(err) {

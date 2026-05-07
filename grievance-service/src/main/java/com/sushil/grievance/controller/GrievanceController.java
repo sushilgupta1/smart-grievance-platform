@@ -114,4 +114,16 @@ public class GrievanceController {
 		return service.reopenGrievance(id, reason, citizenEmail);
 
 	}
+	
+	@GetMapping("/internal/best-officer")
+	public String getBestOfficer(@RequestParam String department)
+	{
+		return service.findLeastLoadedOfficer(department);
+	}
+	
+	@PutMapping("/internal/assign/{id}")
+	public ResponseEntity<Grievance> internalAssignGrievance(@PathVariable Long id, @RequestParam String admin)
+	{
+		return ResponseEntity.ok(service.assignGrievance(id, admin));
+	}
 }

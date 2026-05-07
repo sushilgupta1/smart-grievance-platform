@@ -57,14 +57,20 @@ public class AuthController {
 	}
 
 	@PutMapping("/promote")
-	public String promote(@Valid @RequestBody PromoteRequest request) {
+	public ResponseEntity<?> promote(@Valid @RequestBody PromoteRequest request) {
 		var authentication = SecurityContextHolder.getContext().getAuthentication();
 		boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
 		if (!isAdmin) {
-			throw new RuntimeException("Unauthorized: only superAdmins can promote users");
+			return ResponseEntity.status(403).body("Unauthorized: only superAdmins can promote users");
 		}
-		return authService.promoteUser(request, authentication.getName());
+		
+		try {
+		return ResponseEntity.ok(authService.promoteUser(request, authentication.getName()));
+		}
+		catch (RuntimeException e) {
+			return ResponseEntity.status(400).body(e.getMessage());
+		}
 	}
 	
 	@PostMapping("/verify-registration")

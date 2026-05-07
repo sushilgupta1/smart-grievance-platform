@@ -17,4 +17,9 @@ public class KafkaProducerService {
 	{
 		kafkaTemplate.send(TOPIC,message);
 	}
+	
+	public void sendClassifiedMessage(String message)
+	{
+		kafkaTemplate.send("grievance-classified",message);
+	}
 }

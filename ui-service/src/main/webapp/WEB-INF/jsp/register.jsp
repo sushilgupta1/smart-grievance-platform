@@ -296,7 +296,7 @@
                     <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center mb-2">
                         <i class="fa-solid fa-envelope-circle-check text-blue-400 text-3xl mb-2"></i>
                         <h3 class="text-white font-bold text-lg">Verify Your Email</h3>
-                        <p class="text-sm text-slate-400 mt-1">We generated a 6-digit confirmation code.<br/>(For testing: Check your Eclipse IDE Console!)</p>
+                        <p class="text-sm text-slate-400 mt-1">We emailed you a 6-digit confirmation code.</p>
                     </div>
 
                     <div>

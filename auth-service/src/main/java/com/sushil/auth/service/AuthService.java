@@ -76,10 +76,8 @@ public class AuthService {
 		
 		userRepository.save(user);
 		
-		System.out.println("================================");
-		System.out.println("New regestration OTP for: "+user.getEmail());
-		System.out.println("OTP CODE: "+generatedOtp);
-		System.out.println("================================");
+		String emailPayload=String.format("%s,%s,Your Registration OTP Code", user.getEmail(), generatedOtp);
+		kafkaProducerService.sendMessage("auth-email-events", emailPayload);
 		
 		return "Registratiion Authorized. Awaiting Email verification";
 		
@@ -104,7 +102,7 @@ public class AuthService {
 			
 			String kafkaPayload = String.format("{\"email\": \"%s\", \"mobile\": \"%s\"}", user.getEmail(), user.getMobileNumber());
 			
-			kafkaProducerService.sendMessage(kafkaPayload);
+			kafkaProducerService.sendMessage("user-events",kafkaPayload);
 			
 			return "OTP verified Successfully!";
 			
@@ -128,18 +126,15 @@ public class AuthService {
 		user.setOtp(resetToken);
 		userRepository.save(user);
 		
-		 System.out.println("=========================================");
-	     System.out.println(" PASSWORD RESET TOKEN FOR: " + user.getEmail());
-	     System.out.println(" RESET TOKEN: " + resetToken);
-	     System.out.println("=========================================");
-	        
+		 String emailPayload = String.format("%s,%s,Password Reset Request", user.getEmail(), resetToken);
+	     kafkaProducerService.sendMessage("auth-email-events", emailPayload);
+		 
 	     return "Reset token generated. Check your console.";
 	}
 	
 	public String resetPassword(VerifyOtpRequest request, String newPassword)
 	{
 		User user=userRepository.findByEmail(request.getEmail()).orElseThrow(()->new RuntimeException("User not found...") );
-		
 		if(user.getOtp()!=null && user.getOtp().equals(request.getOtp()))
 		{
 			user.setPassword(passwordEncoder.encode(newPassword)); 
@@ -166,7 +161,7 @@ public class AuthService {
 		String kafkaPayload =  String.format("{\"email\": \"%s\", \"mobile\": \"%s\", \"role\": \"%s\", \"department\": \"%s\"}", 
 				user.getEmail(), user.getMobileNumber(), user.getRole(), user.getDepartment());
 		
-		kafkaProducerService.sendMessage(kafkaPayload);
+		kafkaProducerService.sendMessage("user-events",kafkaPayload);
 		
 		return "User "+user.getEmail()+" successfully promoted to "+ user.getRole();
 	
@@ -181,7 +176,7 @@ public class AuthService {
 		
 		 // Notify Grievance-Service that the mobile number is updated so that in grievance table number must also be updated via kafka
         String kafkaPayload = String.format("{\"email\": \"%s\", \"mobile\": \"%s\"}", user.getEmail(), user.getMobileNumber());
-        kafkaProducerService.sendMessage(kafkaPayload);
+        kafkaProducerService.sendMessage("user-events",kafkaPayload);
         
         return "Profile update successfully";
 		

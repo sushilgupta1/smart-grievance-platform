@@ -10,11 +10,10 @@ public class KafkaProducerService {
 	@Autowired
 	private KafkaTemplate<String, String> kafkaTemplate;
 	
-	private static final String TOPIC= "user-events";
 	
-	public void sendMessage(String msg)
+	public void sendMessage(String topic, String msg)
 	{
-		kafkaTemplate.send(TOPIC,msg);
+		kafkaTemplate.send(topic,msg);
 	}
 
 }

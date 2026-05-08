@@ -878,8 +878,21 @@
                     allGrievancesArray = await res.json();
                     applyFilters();
                     
-                    // Trigger Mayor Analytics
-                    setTimeout(() => renderAnalytics(allGrievancesArray), 100);
+                    // Trigger Mayor Analytics from CQRS Engine
+                    setTimeout(async () => {
+                        try {
+                            console.log("Fetching analytics from: " + `\${API_GATEWAY_URL}/analytics/summary`);
+                            const statsRes = await fetchWithAuth(`\${API_GATEWAY_URL}/analytics/summary`);
+                            console.log("Analytics response status: " + statsRes.status);
+                            if (statsRes.ok) {
+                                const stats = await statsRes.json();
+                                console.log("Analytics data received: ", stats);
+                                renderAnalytics(stats);
+                            } else {
+                                console.error("Analytics fetch failed with status: " + statsRes.status);
+                            }
+                        } catch(e) { console.error("Analytics network error", e); }
+                    }, 100);
                 } catch (err) {
                     showAlert('error', err.message);
                     document.getElementById('workspaceContent').innerHTML = '<div class="text-center text-slate-500 py-10">Failed to load data. Ensure Admin roles are valid.</div>';
@@ -1284,37 +1297,16 @@
             let chartCategory = null;
 
             function renderAnalytics(data) {
-                if (!data || data.length === 0) return;
+                if (!data) return;
 
-                // 1. Calculate KPIs safely checking typo permutations
-                let total = data.length;
-                let resolved = 0;
-                let disputed = 0;
-                let breached = 0;
-
-                const categoryCount = {};
-                const statusCount = {};
-
-                data.forEach(g => {
-                    const s = (g.status || 'OPEN').toUpperCase();
-                    if (s === 'RESOLVED') resolved++;
-                    if (s === 'REOPENED') disputed++;
-                    if (s === 'ESCALATED_SLA_BREACH' || s === 'ESCALATES_SLA_BREACH') breached++;
-
-                    // Count Statuses for Pie Chart
-                    const cleanStatus = s === 'ESCALATES_SLA_BREACH' ? 'ESCALATED_SLA_BREACH' : s;
-                    statusCount[cleanStatus] = (statusCount[cleanStatus] || 0) + 1;
-
-                    // Count Categories for Bar Chart
-                    const cat = g.category || 'Other';
-                    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-                });
+                const statusCount = data.statusCount || {};
+                const categoryCount = data.categoryCount || {};
 
                 // Update DOM KPIs
-                document.getElementById('kpiTotal').innerText = total;
-                document.getElementById('kpiResolved').innerText = resolved;
-                document.getElementById('kpiDisputed').innerText = disputed;
-                document.getElementById('kpiBreached').innerText = breached;
+                document.getElementById('kpiTotal').innerText = data.total || 0;
+                document.getElementById('kpiResolved').innerText = data.resolved || 0;
+                document.getElementById('kpiDisputed').innerText = data.disputed || 0;
+                document.getElementById('kpiBreached').innerText = data.breached || 0;
 
                 // 2. Render Status Doughnut Chart
                 const ctxStatus = document.getElementById('statusChart').getContext('2d');

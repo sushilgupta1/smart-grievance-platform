@@ -1,9 +1,10 @@
-package org.assignment.service.kafka;
+package com.sushil.assignment.kafka;
 
-import org.assignment.service.feign.GrievanceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+
+import com.sushil.assignment.feign.GrievanceClient;
 
 @Service
 public class AssignmentDispatcher {

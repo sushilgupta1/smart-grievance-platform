@@ -1,4 +1,4 @@
-package org.classification.service.dto;
+package com.sushil.classification.dto;
 
 import lombok.Data;
 

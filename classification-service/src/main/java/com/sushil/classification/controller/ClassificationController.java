@@ -1,13 +1,14 @@
-package org.classification.service.controller;
+package com.sushil.classification.controller;
 
-import org.classification.service.dto.ClassificationRequest;
-import org.classification.service.dto.ClassificationResponse;
-import org.classification.service.service.GeminiAiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.sushil.classification.dto.ClassificationRequest;
+import com.sushil.classification.dto.ClassificationResponse;
+import com.sushil.classification.service.GeminiAiService;
 
 @RestController
 @RequestMapping("/classify")

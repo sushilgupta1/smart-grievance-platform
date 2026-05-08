@@ -105,6 +105,8 @@ public class GrievanceService {
 		
 		kafkaProducerService.sendMessage("New Grievance Created: "+saved.getTitle()+" by "+email);
 		kafkaProducerService.sendClassifiedMessage(saved.getId() + ":" + saved.getCategory());
+		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
+		
 		return saved;
 	}
 	
@@ -114,6 +116,8 @@ public class GrievanceService {
 		g.setAssignedTo(admin);
 		g.setStatus("IN_PROGRESS");
 		
+		kafkaProducerService.sendAnalyticsEvent(g.getId(), g.getStatus(), g.getCategory());
+		
 		return repository.save(g);
 	}
 	
@@ -122,6 +126,8 @@ public class GrievanceService {
 		Grievance g = repository.findById(id).orElseThrow();
 		g.setStatus(status);
 		g.setRemarks(remarks);
+		
+		kafkaProducerService.sendAnalyticsEvent(g.getId(), g.getStatus(), g.getCategory());
 		return repository.save(g);
 	}
 	
@@ -188,6 +194,7 @@ public class GrievanceService {
 		{
 			kafkaProducerService.sendMessage("Grievance #"+id+" was resolved and published to the public feed!");
 		}
+		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
 		return saved;
 		
 		
@@ -200,6 +207,7 @@ public class GrievanceService {
 		g.setStatus("OPEN");
 		g.setRemarks("REASSIGNMENT REQUESTED. Justification: "+reason);
 		
+		kafkaProducerService.sendAnalyticsEvent(g.getId(), g.getStatus(), g.getCategory());
 		return repository.save(g);
 	}
 	
@@ -225,7 +233,9 @@ public class GrievanceService {
 		g.setRemarks(currentRemark+"CITIZEN DISPUTE FILED: "+disputeText);
 		
 		Grievance saved=repository.save(g);
+
 		kafkaProducerService.sendMessage("URGENT: Grievance #"+id+" was RE-OPENED by the citizen!");
+		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
 		
 		return saved;
 	}

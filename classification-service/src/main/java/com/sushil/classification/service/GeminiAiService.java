@@ -1,6 +1,5 @@
-package org.classification.service.service;
+package com.sushil.classification.service;
 
-import org.classification.service.dto.ClassificationResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sushil.classification.dto.ClassificationResponse;
 
 @Service
 public class GeminiAiService {

@@ -22,4 +22,10 @@ public class KafkaProducerService {
 	{
 		kafkaTemplate.send("grievance-classified",message);
 	}
+	
+	public void sendAnalyticsEvent(Long id, String status, String department)
+	{
+		String payload = String.format("{\"id\":%d, \"status\":\"%s\", \"department\":\"%s\"}", id, status, department);
+		kafkaTemplate.send("analytics-events", payload);
+	}
 }

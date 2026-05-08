@@ -536,12 +536,30 @@
 
                 try {
                     const response = await fetch(url, { ...options, headers });
-                    if ((response.status === 401 || response.status === 403) && !url.includes('/auth/promote')) {
-                        logout(); // Auto-kick on invalid token
-                        throw new Error("Session expired. Please log in again.");
-                    } else if ((response.status === 401 || response.status === 403) && url.includes('/auth/promote')) {
-                        throw new Error("User not found or promotion denied.");
+                    
+                    if (!response.ok) {
+                        if ((response.status === 401 || response.status === 403) && !url.includes('/auth/promote')) {
+                            logout(); // Auto-kick on invalid token
+                            throw new Error("Session expired. Please log in again.");
+                        }
+                        
+                        // Parse custom error JSON
+                        let errorMsg = "Something went wrong.";
+                        try {
+                            const errorJson = await response.json();
+                            if (errorJson.customErrorCode) {
+                                errorMsg = `[\${errorJson.customErrorCode}] \${errorJson.message}`;
+                            } else if (errorJson.message) {
+                                errorMsg = errorJson.message;
+                            }
+                        } catch (e) {
+                            // Fallback if not JSON
+                            errorMsg = `Server returned status \${response.status}`;
+                        }
+                        
+                        throw new Error(errorMsg);
                     }
+                    
                     return response;
                 } catch (err) {
                     console.error("Fetch error:", err);

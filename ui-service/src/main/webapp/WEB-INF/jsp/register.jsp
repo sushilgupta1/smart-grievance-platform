@@ -397,17 +397,29 @@
                     });
 
                     if (!response.ok) {
-                        const errText = await response.text();
-                        if (errText.includes('Duplicate entry')) {
-                            if (errText.includes(mobileNumber)) {
-                                throw new Error('This mobile number is already registered.');
-                            } else if (errText.includes(email)) {
-                                throw new Error('This email address is already registered.');
+                        let errorMsg = "Registration failed";
+                        try {
+                            const errorJson = await response.json();
+                            if (errorJson.customErrorCode) {
+                                errorMsg = `[\${errorJson.customErrorCode}] \${errorJson.message}`;
+                            } else if (errorJson.message) {
+                                errorMsg = errorJson.message;
+                            }
+                        } catch (e) {
+                            const errText = await response.text();
+                            if (errText.includes('Duplicate entry')) {
+                                if (errText.includes(mobileNumber)) {
+                                    errorMsg = 'This mobile number is already registered.';
+                                } else if (errText.includes(email)) {
+                                    errorMsg = 'This email address is already registered.';
+                                } else {
+                                    errorMsg = 'A user with these details already exists.';
+                                }
                             } else {
-                                throw new Error('A user with these details already exists.');
+                                errorMsg = errText || 'Registration failed';
                             }
                         }
-                        throw new Error(errText || 'Registration failed');
+                        throw new Error(errorMsg);
                     }
 
                     const responseText = await response.text();
@@ -459,8 +471,19 @@
                     });
 
                     if (!response.ok) {
-                        const errText = await response.text();
-                        throw new Error(errText || 'Invalid OTP Code');
+                        let errorMsg = "Invalid OTP Code";
+                        try {
+                            const errorJson = await response.json();
+                            if (errorJson.customErrorCode) {
+                                errorMsg = `[\${errorJson.customErrorCode}] \${errorJson.message}`;
+                            } else if (errorJson.message) {
+                                errorMsg = errorJson.message;
+                            }
+                        } catch (e) {
+                            const errText = await response.text();
+                            errorMsg = errText || 'Invalid OTP Code';
+                        }
+                        throw new Error(errorMsg);
                     }
 
                     showAlert('success', 'Account Verified! Redirecting to login...');

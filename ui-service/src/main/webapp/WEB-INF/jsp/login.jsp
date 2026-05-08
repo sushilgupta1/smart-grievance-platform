@@ -425,7 +425,18 @@
           });
 
           if (!response.ok) {
-            throw new Error('Invalid email or password');
+            let errorMsg = "Invalid email or password";
+            try {
+                const errorJson = await response.json();
+                if (errorJson.customErrorCode) {
+                    errorMsg = `[\${errorJson.customErrorCode}] \${errorJson.message}`;
+                } else if (errorJson.message) {
+                    errorMsg = errorJson.message;
+                }
+            } catch (e) {
+                // Fallback
+            }
+            throw new Error(errorMsg);
           }
 
           // Assuming JWT token is returned as plain text based on old jsp

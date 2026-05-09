@@ -28,7 +28,6 @@ public class GlobalExceptionHandler {
         String errorCode = "ERR-GEN-000";
         String errorMessage = ex.getMessage();
 
-        // Custom Application Error Code mapping for Grievance rules
         if (errorMessage.contains("Maximum dispute limit exhausted")) {
             status = HttpStatus.FORBIDDEN;
             errorCode = "GRV-LIMIT-403";

@@ -3,19 +3,17 @@ package com.sushil.grievance.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.discovery.converters.Auto;
 import com.sushil.grievance.dto.GrievanceRequest;
 import com.sushil.grievance.dto.ResolveRequest;
 import com.sushil.grievance.entity.CitizenReference;
@@ -44,7 +42,11 @@ public class GrievanceService {
 	@Autowired
 	private FileStorageService fileStorageService;
 	
-	public Grievance createGrievance(GrievanceRequest request, String email, MultipartFile file)
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})	public Grievance createGrievance(GrievanceRequest request, String email, MultipartFile file)
 	{
 		Grievance grievance=new Grievance();
 		grievance.setTitle(request.getTitle());
@@ -110,6 +112,11 @@ public class GrievanceService {
 		return saved;
 	}
 	
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})
 	public Grievance assignGrievance(Long id, String admin)
 	{
 		Grievance g = repository.findById(id).orElseThrow();
@@ -121,6 +128,11 @@ public class GrievanceService {
 		return repository.save(g);
 	}
 	
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})
 	public Grievance updateStatus(Long id, String status, String remarks)
 	{
 		Grievance g = repository.findById(id).orElseThrow();
@@ -131,7 +143,7 @@ public class GrievanceService {
 		return repository.save(g);
 	}
 	
-	
+	@Cacheable(value = "myGrievances", key = "#email")
 	public List<Grievance> getMyGrievances(String email)
 	{
 		List<Grievance> origionalGrievances = repository.findByUserEmail(email);
@@ -147,8 +159,10 @@ public class GrievanceService {
 		return securedGrievances;
 	}
 
+	@Cacheable(value = "allGrievance")
 	public List<Grievance> getAllGrievance()
 	{
+		System.out.println(">>> CACHE MISS: Fetching all grievances from MySQL...");
 		return repository.findAll();
 	}
 	
@@ -162,12 +176,17 @@ public class GrievanceService {
 		return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Grievance not found"));
 	}
 	
+	@Cacheable(value = "officerGrievances", key = "#officerEmail")
 	public List<Grievance> getAssignedGrievance(String officerEmail)
 	{
 		return repository.findByAssignedTo(officerEmail);
 	}
 	
-	
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})
 	public Grievance updateResolution(Long id, ResolveRequest request, MultipartFile file ) {
 		Grievance g = repository.findById(id).orElseThrow();
 		
@@ -200,6 +219,11 @@ public class GrievanceService {
 		
 	}
 	
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})
 	public Grievance requestReassigment(Long id, String reason)
 	{
 		Grievance g=repository.findById(id).orElseThrow();
@@ -211,6 +235,11 @@ public class GrievanceService {
 		return repository.save(g);
 	}
 	
+	@Caching(evict = {
+		    @CacheEvict(value = "allGrievances", allEntries = true),
+		    @CacheEvict(value = "myGrievances", allEntries = true),
+		    @CacheEvict(value = "officerGrievances", allEntries = true)
+		})
 	public Grievance reopenGrievance(Long id, String reason, String citizenEmail)
 	{
 		Grievance g= repository.findById(id).orElseThrow(()-> new RuntimeException("Grievance not found"));

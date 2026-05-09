@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.sushil.analytics.repository.TicketRecordRepository;
@@ -14,8 +15,10 @@ public class DashboardService {
 	@Autowired
 	private TicketRecordRepository repository;
 	
+	@Cacheable(value =  "analyticsSummary")
 	public Map<String, Object> getDashboardMetrics()
 	{
+		System.out.println(">>> CACHE MISS: Computing analytics from MySQL...");
 		try {
 			Map<String, Object> metrics= new HashMap<>();
 			

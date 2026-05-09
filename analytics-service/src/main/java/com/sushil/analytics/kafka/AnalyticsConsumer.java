@@ -1,6 +1,7 @@
 package com.sushil.analytics.kafka;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class AnalyticsConsumer {
 	private final ObjectMapper mapper=new ObjectMapper();
 	
 	@KafkaListener(topics = "analytics-events", groupId = "analytics-group")
+	@CacheEvict(value = "analyticsSummary", allEntries = true)
 	public void consumeEvent(String message)
 	{
 		try {
@@ -33,7 +35,8 @@ public class AnalyticsConsumer {
 			 record.setDepartment(dept);
 			 
 			 repository.save(record);
-			 System.out.println("Analytics DB Updated for Grievance #" + id);
+			 System.out.println("Analytics DB Updated for Grievance #" + id + " (Cache evicted)");	 
+		
 		} catch (Exception e) {
 			 System.err.println("Error parsing analytics event: " + e.getMessage());
 		}

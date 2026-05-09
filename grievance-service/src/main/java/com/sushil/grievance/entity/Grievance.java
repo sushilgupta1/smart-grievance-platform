@@ -1,5 +1,6 @@
 package com.sushil.grievance.entity;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -15,8 +16,11 @@ import lombok.Setter;
 @Table(name = "grievances")
 @Setter
 @Getter
-public class Grievance {
+public class Grievance implements Serializable{
 	
+	
+	private static final long serialVersionUID = 1L;
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;

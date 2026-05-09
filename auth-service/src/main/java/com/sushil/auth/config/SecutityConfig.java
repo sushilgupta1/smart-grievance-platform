@@ -37,7 +37,8 @@ public class SecutityConfig {
 				"/auth/register",
 				"/auth/verify-registration",
 				"/auth/forgot-password",
-				"/auth/reset-password")
+				"/auth/reset-password",
+				"/actuator/**")
 				.permitAll().anyRequest().authenticated())
 		.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 		

@@ -23,7 +23,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		String path = req.getRequestURI();
 
 		if (path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/grievance/track")
-				|| path.startsWith("/grievance/feed") || path.startsWith("/grievance/uploads/") || path.startsWith("/grievance/internal/")) {
+				|| path.startsWith("/grievance/feed") || path.startsWith("/grievance/uploads/") || path.startsWith("/grievance/internal/") ||  path.startsWith("/actuator")) {
 			chain.doFilter(req, response);
 			return;
 		}

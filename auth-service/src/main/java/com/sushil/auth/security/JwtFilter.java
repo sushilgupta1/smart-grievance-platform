@@ -28,7 +28,8 @@ public class JwtFilter extends OncePerRequestFilter {
             path.startsWith("/auth/register") || 
             path.startsWith("/auth/verify-registration") ||
             path.startsWith("/auth/forgot-password") || 
-            path.startsWith("/auth/reset-password")) {
+            path.startsWith("/auth/reset-password")||
+            path.startsWith("/actuator")) {
             chain.doFilter(req, response);
             return;
         }

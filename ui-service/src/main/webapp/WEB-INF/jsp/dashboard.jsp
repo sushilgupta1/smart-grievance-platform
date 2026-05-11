@@ -16,6 +16,9 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <!-- Chart.js -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- WebSocket: SockJS + STOMP -->
+        <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
         <script>
             tailwind.config = {
@@ -1480,6 +1483,41 @@
                     showAlert('error', 'Geolocation is not supported by this browser.');
                 }
             }
+          
+
+            /* ================= LIVE WEBSOCKET CONNECTION ================= */
+            (function connectWebSocket() {
+                try {
+                    const socket = new SockJS('http://localhost:8085/ws');
+                    const stompClient = Stomp.over(socket);
+                    stompClient.debug = null; // Suppress noisy STOMP logs
+
+                    stompClient.connect({}, function(frame) {
+                        console.log('🟢 WebSocket connected to grievance-service');
+
+                        stompClient.subscribe('/topic/dashboard', function(message) {
+                            const event = JSON.parse(message.body);
+                            console.log('📡 Live event:', event);
+
+                            // Show a live toast notification
+                            showAlert('success', '🔴 LIVE: ' + event.message);
+
+                            // Auto-refresh the current view
+                            setTimeout(() => {
+                                if (isAdmin) loadAdminView();
+                                else if (isOfficer) loadOfficerView();
+                                else loadUserView();
+                            }, 1000);
+                        });
+
+                    }, function(error) {
+                        console.warn('🔴 WebSocket connection lost. Reconnecting in 5s...', error);
+                        setTimeout(connectWebSocket, 5000);
+                    });
+                } catch (e) {
+                    console.warn('WebSocket not available, falling back to manual refresh.');
+                }
+            })();
           
 
         </script>

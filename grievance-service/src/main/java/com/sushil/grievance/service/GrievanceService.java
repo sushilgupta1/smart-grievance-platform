@@ -42,6 +42,9 @@ public class GrievanceService {
 	@Autowired
 	private FileStorageService fileStorageService;
 	
+	@Autowired
+	private LiveNotificationService liveNotificationService;
+	
 	@Caching(evict = {
 		    @CacheEvict(value = "allGrievances", allEntries = true),
 		    @CacheEvict(value = "myGrievances", allEntries = true),
@@ -109,6 +112,8 @@ public class GrievanceService {
 		kafkaProducerService.sendClassifiedMessage(saved.getId() + ":" + saved.getCategory());
 		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
 		
+		liveNotificationService.pushDashboardUpdate("NEW_GRIEVANCE", "New grievance #" + saved.getId() + ": " + saved.getTitle());
+		
 		return saved;
 	}
 	
@@ -124,6 +129,7 @@ public class GrievanceService {
 		g.setStatus("IN_PROGRESS");
 		
 		kafkaProducerService.sendAnalyticsEvent(g.getId(), g.getStatus(), g.getCategory());
+		liveNotificationService.pushDashboardUpdate("ASSIGNED", "Grievance #" + g.getId() + " assigned to " + admin);
 		
 		return repository.save(g);
 	}
@@ -140,6 +146,8 @@ public class GrievanceService {
 		g.setRemarks(remarks);
 		
 		kafkaProducerService.sendAnalyticsEvent(g.getId(), g.getStatus(), g.getCategory());
+		liveNotificationService.pushDashboardUpdate("STATUS_CHANGED", "Grievance #" + g.getId() + " status: " + status);
+		
 		return repository.save(g);
 	}
 	
@@ -214,6 +222,8 @@ public class GrievanceService {
 			kafkaProducerService.sendMessage("Grievance #"+id+" was resolved and published to the public feed!");
 		}
 		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
+		liveNotificationService.pushDashboardUpdate("RESOLVED", "Grievance #" + id + " has been resolved!");
+		
 		return saved;
 		
 		
@@ -265,6 +275,8 @@ public class GrievanceService {
 
 		kafkaProducerService.sendMessage("URGENT: Grievance #"+id+" was RE-OPENED by the citizen!");
 		kafkaProducerService.sendAnalyticsEvent(saved.getId(), saved.getStatus(), saved.getCategory());
+		
+		liveNotificationService.pushDashboardUpdate("REOPENED", "Grievance #" + id + " was re-opened by citizen!");
 		
 		return saved;
 	}

@@ -1488,7 +1488,7 @@
             /* ================= LIVE WEBSOCKET CONNECTION ================= */
             (function connectWebSocket() {
                 try {
-                    const socket = new SockJS('http://localhost:8085/ws');
+                    const socket = new SockJS('http://localhost:8083/ws');
                     const stompClient = Stomp.over(socket);
                     stompClient.debug = null; // Suppress noisy STOMP logs
 

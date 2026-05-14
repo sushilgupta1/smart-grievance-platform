@@ -21,7 +21,7 @@ public class GrievanceSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(
-						auth -> auth.requestMatchers("/grievance/internal/**").permitAll().requestMatchers(HttpMethod.GET, "/grievance/track", "/grievance/feed", "/grievance/uploads/**","/actuator/**").permitAll()
+						auth -> auth.requestMatchers("/grievance/internal/**","/ws/**").permitAll().requestMatchers(HttpMethod.GET, "/grievance/track", "/grievance/feed", "/grievance/uploads/**","/actuator/**").permitAll()
 								.requestMatchers("/grievance/**").authenticated().anyRequest().permitAll())
 				.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 
